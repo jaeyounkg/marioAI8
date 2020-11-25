@@ -12,7 +12,7 @@ import ch.idsia.tools.EvaluationInfo;
 import ch.idsia.tools.MarioAIOptions;
 import ch.idsia.utils.wox.serial.Easy;
 import ch.idsia.agents.QLAgent;
-import ch.idsia.agents.QLStateActionPair;
+import ch.idsia.agents.QLStateAction;
 
 public class LearningWithQL implements LearningAgent {
 	private final String FILENAME = "LearnedQLModel.txt";
@@ -31,22 +31,22 @@ public class LearningWithQL implements LearningAgent {
 		agent = new QLAgent();
 		QLAgent.bestScore = 0;
 
-		try {
-			File f = new File(FILENAME);
-			BufferedReader br = new BufferedReader(new FileReader(f));
-			for (int i = 0; i < QLState.N_STATES; ++i) {
-				for (int j = 0; j < QLAgent.N_ACTIONS; ++j) {
-					String s = br.readLine();
-					Double v = Double.parseDouble(s);
-					if (v != QLAgent.INITIAL_Q) {
-						QLAgent.Q.put(new QLStateActionPair(new QLState(i), j), v);
-					}
-				}
-			}
-			br.close();
-		} catch (IOException e) {
-			System.out.println(e);
-		}
+		// try {
+		// File f = new File(FILENAME);
+		// BufferedReader br = new BufferedReader(new FileReader(f));
+		// for (int i = 0; i < QLState.N_STATES; ++i) {
+		// for (int j = 0; j < QLAgent.N_ACTIONS; ++j) {
+		// String s = br.readLine();
+		// Double v = Double.parseDouble(s);
+		// if (v != QLAgent.INITIAL_Q) {
+		// QLAgent.Q.put(new QLStateAction(new QLState(i), j), v);
+		// }
+		// }
+		// }
+		// br.close();
+		// } catch (IOException e) {
+		// System.out.println(e);
+		// }
 	}
 
 	// 学習部分
@@ -69,21 +69,21 @@ public class LearningWithQL implements LearningAgent {
 
 				show();
 
-				try {
-					// 学習した行動価値関数を書き込み
-					File f = new File(FILENAME);
-					f.createNewFile();
-					BufferedWriter bw = new BufferedWriter(new FileWriter(f));
-					for (int i = 0; i < QLState.N_STATES; ++i) {
-						for (int j = 0; j < QLAgent.N_ACTIONS; ++j) {
-							bw.write(String.valueOf(QLAgent.bestQ[i][j]));
-							bw.newLine();
-						}
-					}
-					bw.close();
-				} catch (IOException e) {
-					System.out.println(e);
-				}
+				// try {
+				// // 学習した行動価値関数を書き込み
+				// File f = new File(FILENAME);
+				// f.createNewFile();
+				// BufferedWriter bw = new BufferedWriter(new FileWriter(f));
+				// for (int i = 0; i < QLState.N_STATES; ++i) {
+				// for (int j = 0; j < QLAgent.N_ACTIONS; ++j) {
+				// bw.write(String.valueOf(QLAgent.bestQ[i][j]));
+				// bw.newLine();
+				// }
+				// }
+				// bw.close();
+				// } catch (IOException e) {
+				// System.out.println(e);
+				// }
 
 				startTime = System.currentTimeMillis();
 			}
@@ -164,13 +164,8 @@ public class LearningWithQL implements LearningAgent {
 		if (score > QLAgent.bestScore) {
 			QLAgent.bestScore = score;
 			QLAgent.best = new ArrayList<Integer>(QLAgent.actions);
-			QLAgent.bestQ = new double[QLState.N_STATES][QLAgent.N_ACTIONS];
 			for (int i = 0; i < QLState.N_STATES; ++i) {
 				QLState state = new QLState(i);
-				for (int j = 0; j < QLAgent.N_ACTIONS; ++j) {
-					QLStateActionPair pair = new QLStateActionPair(state, j);
-					QLAgent.bestQ[i][j] = QLAgent.Q.getOrDefault(pair, QLAgent.INITIAL_Q);
-				}
 			}
 		}
 
@@ -178,7 +173,7 @@ public class LearningWithQL implements LearningAgent {
 		agent.giveRewardForEntireHistory(reward);
 
 		long endTime = System.currentTimeMillis();
-		System.out.println(score + " r:" + reward + " s:" + QLAgent.Q.size() + " t:" + (endTime - startTime) + "(ms)");
+		System.out.println(score + " r:" + reward + " t:" + (endTime - startTime) + "(ms)");
 
 		return score;
 	}

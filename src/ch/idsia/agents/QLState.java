@@ -7,6 +7,7 @@ public final class QLState {
     public static final int N_STATES = (1 << 15);
     // 前方2マスの縦何マスを取得するか
     public static final int WIDTH = 3;
+
     private static final int marioEgoRow = 9;
     private static final int marioEgoCol = 9;
 

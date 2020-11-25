@@ -138,7 +138,7 @@ public final class LearningTrackQL {
 
     public static void main(String[] args) {
 
-        final int runWhat = 2;
+        final int runWhat = 1;
 
         /* 学習に用いるAgentを指定 */
         LearningAgent learningAgent;
