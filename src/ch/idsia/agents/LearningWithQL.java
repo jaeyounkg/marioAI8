@@ -52,7 +52,8 @@ public class LearningWithQL implements LearningAgent {
 	// 学習部分
 	// 学習してその中でもっとも良かったものをリプレイ
 	public void learn() {
-		final int SHOW_INTERVALS = 1000;
+		final int SHOW_INTERVALS = 100;
+		double allTimeBestScore = 0;
 
 		long startTime = System.currentTimeMillis();
 		for (int nt = 0; nt < numOfTrial; ++nt) {
@@ -61,11 +62,15 @@ public class LearningWithQL implements LearningAgent {
 				show();
 				break;
 			}
-			if (nt % SHOW_INTERVALS == 999) {
+			if (nt % SHOW_INTERVALS == SHOW_INTERVALS - 1) {
 
 				long endTime = System.currentTimeMillis();
+
+				allTimeBestScore = Math.max(allTimeBestScore, QLAgent.bestScore);
 				System.out.println("time for " + SHOW_INTERVALS + " plays:" + (endTime - startTime) + "(ms)");
-				System.out.println("best score: " + QLAgent.bestScore);
+				System.out.println("current best score: " + QLAgent.bestScore);
+				System.out.println("all time best score: " + allTimeBestScore);
+				// QLAgent.bestScore = 0;
 
 				show();
 
@@ -106,6 +111,8 @@ public class LearningWithQL implements LearningAgent {
 		marioAIOptions.setVisualization(true);
 		/* QLAgentをセット */
 		marioAIOptions.setAgent(agent);
+		// marioAIOptions.setLevelRandSeed(QLAgent.bestLevelSeed);
+		marioAIOptions.setFPS(100);
 		basicTask.setOptionsAndReset(marioAIOptions);
 
 		if (!basicTask.runSingleEpisode(1)) {
@@ -137,6 +144,9 @@ public class LearningWithQL implements LearningAgent {
 		marioAIOptions.setVisualization(false);
 		/* QLAgentをセット */
 		marioAIOptions.setAgent(agent);
+		// Random random = new Random();
+		// int seed = random.nextInt();
+		// marioAIOptions.setLevelRandSeed(seed);
 		basicTask.setOptionsAndReset(marioAIOptions);
 
 		if (!basicTask.runSingleEpisode(1)) {
@@ -162,18 +172,28 @@ public class LearningWithQL implements LearningAgent {
 
 		// ベストスコアが出たら更新
 		if (score > QLAgent.bestScore) {
+			// QLAgent.bestLevelSeed = seed;
 			QLAgent.bestScore = score;
 			QLAgent.best = new ArrayList<Integer>(QLAgent.actions);
-			for (int i = 0; i < QLState.N_STATES; ++i) {
-				QLState state = new QLState(i);
-			}
 		}
 
-		double reward = score + 0.1 * (score - QLAgent.bestScore);
+		double reward = Math.max(0, score / QLAgent.bestScore * 2);
 		agent.giveRewardForEntireHistory(reward);
+		// if (agent.getPos()[1] / 16.0 > 16) {
+		// ListIterator<QLStateAction> iter =
+		// QLAgent.history.listIterator(QLAgent.history.size());
+		// int d;
+		// for (d = 0; iter.hasPrevious(); ++d) {
+		// QLStateAction sa = iter.previous();
+		// if (sa.getState().onGround)
+		// break;
+		// }
+		// agent.giveRewardForRecentActions(d + 1, -1);
+		// }
 
 		long endTime = System.currentTimeMillis();
-		System.out.println(score + " r:" + reward + " t:" + (endTime - startTime) + "(ms)");
+		System.out.println((int) score + " r:" + (int) (reward * 100) + " g:" + (evaluationInfo.timeSpent) + "(s) t:"
+				+ (endTime - startTime) + "(ms) ");
 
 		return score;
 	}

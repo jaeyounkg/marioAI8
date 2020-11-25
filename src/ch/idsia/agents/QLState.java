@@ -14,6 +14,7 @@ public final class QLState {
     // false means empty
     public final byte[][] field; // Agent.levelScene
     public final byte[][] enemies; // Agent.enemies
+    public final double x, y; // mario x, y coordinates within a block
     public final boolean onGround;
     public final boolean cliff;
     public final boolean ableToJump;
@@ -21,7 +22,8 @@ public final class QLState {
     // TODO ACTUALLY IMPLEMENT fromInt()
     private int pre = -1;
 
-    public QLState(byte[][] field, byte[][] enemies, boolean onGround, boolean cliff, boolean ableToJump) {
+    public QLState(byte[][] field, byte[][] enemies, float[] marioFloatPos, boolean onGround, boolean cliff,
+            boolean ableToJump) {
         this.field = new byte[19][19];
         for (int i = 0; i < 19; ++i) {
             this.field[i] = field[i].clone();
@@ -30,20 +32,24 @@ public final class QLState {
         for (int i = 0; i < 19; ++i) {
             this.enemies[i] = enemies[i].clone();
         }
+        this.x = marioFloatPos[0] / 16 - Math.floor(marioFloatPos[0] / 16);
+        this.y = marioFloatPos[1] / 16 - Math.floor(marioFloatPos[1] / 16);
         this.onGround = onGround;
         this.cliff = cliff;
         this.ableToJump = ableToJump;
     }
 
-    public QLState(int pre) {
-        this.field = new byte[19][19];
-        this.enemies = new byte[19][19];
-        this.onGround = false;
-        this.cliff = false;
-        this.ableToJump = false;
+    // public QLState(int pre) {
+    // this.field = new byte[19][19];
+    // this.enemies = new byte[19][19];
+    // this.x = 0;
+    // this.y = 0;
+    // this.onGround = false;
+    // this.cliff = false;
+    // this.ableToJump = false;
 
-        this.pre = pre;
-    }
+    // this.pre = pre;
+    // }
 
     public int toInt() {
         if (pre >= 0)

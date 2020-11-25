@@ -6,8 +6,8 @@ import ch.idsia.benchmark.mario.engine.sprites.Sprite;
 
 public final class QLStateAction {
 
-	public final static int RANGE = 5;
-	public final static int N_STATE_DIM = RANGE * RANGE * 2 + 3;
+	public final static int RANGE = 7;
+	public final static int N_STATE_DIM = RANGE * RANGE * 2 + 5;
 	public final static int N_DIM = N_STATE_DIM + 5;
 
 	private final QLState state;
@@ -44,10 +44,10 @@ public final class QLStateAction {
 	public double[] toVector() {
 		double[] vec = new double[N_DIM];
 
-		int startX = 8, startY = 7;
+		int startX = 8, startY = 6;
 		for (int i = 0; i < RANGE; ++i) {
 			for (int j = 0; j < RANGE; ++j) {
-				vec[i * RANGE + j] = (state.field[startY + i][startX + j] != 1) ? 1 : 0;
+				vec[i * RANGE + j] = (state.field[startY + i][startX + j] != 0) ? 1 : 0;
 			}
 		}
 		for (int i = 0; i < RANGE; ++i) {
@@ -56,9 +56,11 @@ public final class QLStateAction {
 						: 0;
 			}
 		}
-		vec[RANGE * RANGE] = state.onGround ? 1 : 0;
-		vec[RANGE * RANGE + 1] = state.cliff ? 1 : 0;
-		vec[RANGE * RANGE + 2] = state.ableToJump ? 1 : 0;
+		vec[RANGE * RANGE * 2] = state.onGround ? 1 : 0;
+		vec[RANGE * RANGE * 2 + 1] = state.cliff ? 1 : 0;
+		vec[RANGE * RANGE * 2 + 2] = state.ableToJump ? 1 : 0;
+		vec[RANGE * RANGE * 2 + 3] = state.x;
+		vec[RANGE * RANGE * 2 + 4] = state.y;
 
 		// JUMP, SPEED, RIGHT, LEFT, DOWN
 		vec[N_STATE_DIM] = (action == 0 || (action > 4 && action < 11)) ? 1 : 0;

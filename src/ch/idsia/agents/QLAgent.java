@@ -22,7 +22,7 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	public static final int PENALTY_FOR_COLLISION = 1000;
 
 	// 毎フレームもっとも価値の高い行動をするが、確率epsilonで他の行動を等確率で選択
-	public static final float epsilon = 0.005f;
+	public static final float epsilon = 0.05f;
 	// もっとも良い選択の再現に使用
 	private static int frameCounter = 0;
 	// 毎エピソードで選択した行動を全フレーム分とっておく
@@ -31,6 +31,7 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	public static List<Integer> best;
 	// 学習中にもっとも良かったスコア
 	public static double bestScore;
+	public static int bestLevelSeed;
 	// 毎フレームで貪欲な選択をするかどうか
 	public static boolean mode = false;
 	// 各エピソードで、ある状態である行動を取ったかどうか
@@ -43,7 +44,8 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	// discount factor
 	public final static double gamma = 0.5;
 
-	public static MLP mlp;
+	public static MLP QA, QB;
+	private static double maxReward = 1;
 
 	private static float prevX, prevY;
 	private static int prevCollisionsWithCreatures;
@@ -71,10 +73,15 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 		super(name);
 		selected = new HashMap<QLStateAction, Integer>();
 		history = new ArrayList<QLStateAction>();
-		mlp = new MLP(QLStateAction.N_DIM, 16, 1);
+		QA = new MLP(QLStateAction.N_DIM, 16, 1);
+		QB = new MLP(QLStateAction.N_DIM, 16, 1);
 
 		actions = new ArrayList<Integer>();
 		best = new ArrayList<Integer>();
+	}
+
+	public float[] getPos() {
+		return marioFloatPos;
 	}
 
 	public boolean[] getAction() {
@@ -83,21 +90,25 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 
 		// give penalty for collisions
 		if (Mario.collisionsWithCreatures > prevCollisionsWithCreatures) {
-			givePenaltyForRecentActions(8, 100);
+			giveRewardForRecentActions(8, -0.1);
 		}
 
 		// give reward for kills
 		if (getKillsTotal > prevKillsTotal) {
-			giveRewardForRecentActions(8, 0.1);
+			giveRewardForRecentActions(8, 0.001);
+		}
+
+		if (x > prevX) {
+			// giveRewardForRecentActions(1, 0.005);
 		}
 
 		// give penalty for not moving
 		if (x == prevX) {
-			givePenaltyForRecentActions(1, 0.01);
+			// giveRewardForRecentActions(1, -0.01);
 		}
 
 		if (x < prevX) {
-			givePenaltyForRecentActions(1, 0.002);
+			// giveRewardForRecentActions(1, -0.01);
 		}
 
 		clearAction();
@@ -129,15 +140,28 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 		return action;
 	}
 
-	// update Q(`prevState`, `prevAction`) based on current state `curState`
-	public static void updateQ(QLStateAction prevStateAction, QLState curState, double reward) {
+	// update Q1 using Q2
+	private static void _updateQ(MLP Q1, MLP Q2, QLStateAction prevStateAction, QLState curState, double reward) {
 		double maxQ = 0;
+		int maxA = 0;
 		for (int a = 0; a < QLAgent.N_ACTIONS; ++a) {
 			QLStateAction sa = new QLStateAction(curState, a);
-			maxQ = Math.max(maxQ, mlp.propagate(sa.toVector())[0]);
+			double q = Q1.propagate(sa.toVector())[0];
+			if (q > maxQ) {
+				maxQ = q;
+				maxA = a;
+			}
 		}
-		double curQ = mlp.propagate(prevStateAction.toVector())[0];
-		mlp.backPropagate(new double[] { (1 - alpha) * curQ + alpha * (reward + gamma * maxQ) });
+		QLStateAction sa = new QLStateAction(curState, maxA);
+		double prevQ2 = Q2.propagate(sa.toVector())[0];
+		double prevQ1 = Q1.propagate(prevStateAction.toVector())[0];
+		Q1.backPropagate(new double[] { (1 - alpha) * prevQ1 + alpha * (reward + gamma * prevQ2) });
+	}
+
+	// update Q(`prevState`, `prevAction`) based on current state `curState`
+	public static void updateQ(QLStateAction prevStateAction, QLState curState, double reward) {
+		_updateQ(QA, QB, prevStateAction, curState, reward);
+		_updateQ(QB, QA, prevStateAction, curState, reward);
 	}
 
 	// give rewards for actions taken in the recent `duration` amount of time
@@ -177,7 +201,7 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 			}
 		}
 
-		QLState state = new QLState(levelScene, enemies, isMarioOnGround, cliff, isMarioAbleToJump);
+		QLState state = new QLState(levelScene, enemies, marioFloatPos, isMarioOnGround, cliff, isMarioAbleToJump);
 		return state;
 	}
 
@@ -198,7 +222,7 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 			QLState s = getState();
 			for (int i = 0; i < N_ACTIONS; ++i) {
 				QLStateAction sa = new QLStateAction(s, i);
-				double q = mlp.propagate(sa.toVector())[0];
+				double q = QA.propagate(sa.toVector())[0];
 				if (q > max) {
 					max = q;
 					idx = i;

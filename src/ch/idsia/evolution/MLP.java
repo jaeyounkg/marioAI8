@@ -27,6 +27,9 @@
 
 package ch.idsia.evolution;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.util.Random;
 
 /**
@@ -42,11 +45,11 @@ public class MLP implements FA<double[], double[]>, Evolvable {
     // private double[] targetOutputs;
     public double mutationMagnitude = 0.1;
 
-    public static double mean = 0.0f; // initialization mean
-    public static double deviation = 0.1f; // initialization deviation
+    public static double mean = 0.0; // initialization mean
+    public static double deviation = 1.0; // initialization deviation
 
     public static final Random random = new Random();
-    public double learningRate = 0.01;
+    public double learningRate = 0.05;
 
     public MLP(int numberOfInputs, int numberOfHidden, int numberOfOutputs) {
 
@@ -67,6 +70,26 @@ public class MLP implements FA<double[], double[]>, Evolvable {
         inputs = new double[firstConnectionLayer.length];
         hiddenNeurons = new double[numberOfHidden];
         outputs = new double[numberOfOutputs];
+    }
+
+    public void saveToFile(String filename) {
+        try {
+            File f = new File(filename);
+            f.createNewFile();
+            BufferedWriter bw = new BufferedWriter(new FileWriter(f));
+            bw.write(String.valueOf(inputs.length));
+            bw.newLine();
+            bw.write(String.valueOf(hiddenNeurons.length));
+            bw.newLine();
+            bw.write(String.valueOf(outputs.length));
+            bw.newLine();
+            for(int i = 0; i < inputs.length; ++i) {
+                for(int j = 0; j < hiddenNeurons.length; ++j) {
+                    bw.write(String.valueOf(firstConnectionLayer))
+                }
+            }
+        }
+
     }
 
     protected void initializeLayer(double[][] layer) {
@@ -179,8 +202,6 @@ public class MLP implements FA<double[], double[]>, Evolvable {
         for (int from = 0; from < fromLayer.length; from++) {
             for (int to = 0; to < toLayer.length; to++) {
                 toLayer[to] += fromLayer[from] * connections[from][to];
-                // System.out.println("From : " + from + " to: " + to + " :: " +toLayer[to] +
-                // "+=" + fromLayer[from] + "*"+ connections[from][to]);
             }
         }
     }
