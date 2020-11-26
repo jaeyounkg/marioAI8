@@ -29,7 +29,7 @@ public final class QLStateAction {
 
 	@Override
 	public int hashCode() {
-		return ((int) state.toLong() >> 4) + action;
+		return (int) ((state.toLong() >> 16) + action);
 	}
 
 	public QLStateAction clone() {
@@ -37,6 +37,6 @@ public final class QLStateAction {
 	}
 
 	public long toLong() {
-		return action * QLState.N_STATES + state.toLong();
+		return QLState.N_STATES * (long) action + state.toLong();
 	}
 }

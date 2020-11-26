@@ -22,7 +22,7 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	 */
 
 	// 毎フレームもっとも価値の高い行動をするが、確率epsilonで他の行動を等確率で選択
-	public static final float epsilon = 0.005f;
+	public static float epsilon = 0.01f;
 	// もっとも良い選択の再現に使用
 	private static int frameCounter = 0;
 	// 毎エピソードで選択した行動を全フレーム分とっておく
@@ -43,7 +43,7 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	public static QLQFunction Q;
 	public final static double INITIAL_Q = 0;
 	// learning rate
-	public static double alpha = 0.1;
+	public static double alpha = 0.05;
 	// discount factor
 	public static double gamma = 0.5;
 	// 各状態行動対におけるそれまで得た報酬の合計
@@ -90,12 +90,16 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 
 		// give penalty for collisions
 		if (Mario.collisionsWithCreatures > prevCollisionsWithCreatures) {
-			// givePenaltyForRecentActions(8, 1000);
+			giveRewardForRecentActions(6, -250);
 		}
 
 		// give reward for kills
 		if (getKillsTotal > prevKillsTotal) {
-			// giveRewardForRecentActions(8, 10);
+			giveRewardForRecentActions(6, 10);
+		}
+
+		if (x == prevX) {
+			giveRewardForRecentActions(1, -1);
 		}
 
 		clearAction();
@@ -155,11 +159,6 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 		}
 	}
 
-	// give penalty for actions taken in the recent `duration` amount of time
-	public void givePenaltyForRecentActions(int duration, double penalty) {
-		giveRewardForRecentActions(duration, -penalty);
-	}
-
 	// give rewards for the entire state-action pairs
 	public void giveRewardForEntireHistory(double reward) {
 		giveRewardForRecentActions(history.size(), reward);
@@ -211,7 +210,7 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 			}
 		}
 
-		QLState state = new QLState(levelScene, enemies, isMarioOnGround, cliff, isMarioAbleToJump);
+		QLState state = new QLState(levelScene, enemies, marioFloatPos, isMarioOnGround, cliff, isMarioAbleToJump);
 		return state;
 	}
 
@@ -229,9 +228,10 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 			}
 		} else {
 			double max = -Double.MAX_VALUE;
+			Random random = new Random();
 			QLState s = getState();
 			for (int i = 0; i < N_ACTIONS; ++i) {
-				double q = Q.getOrDefault(new QLStateAction(s, i), INITIAL_Q);
+				double q = Q.getOrDefault(new QLStateAction(s, i), random.nextDouble() * 1000);
 				if (q > max) {
 					max = q;
 					idx = i;

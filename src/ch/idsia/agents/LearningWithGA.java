@@ -117,8 +117,6 @@ public class LearningWithGA implements LearningAgent {
 
 		for (int i = 0; i < popsize; i++) {
 
-			System.out.print(i + "thhaha ");
-
 			/* GAAgents[i]をセット */
 			marioAIOptions.setAgent(agents[i]);
 			basicTask.setOptionsAndReset(marioAIOptions);

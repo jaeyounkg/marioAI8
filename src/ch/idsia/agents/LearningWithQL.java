@@ -23,7 +23,7 @@ public class LearningWithQL implements LearningAgent {
 	private float goal = 4096.0f;
 	private String args;
 	// 試行回数
-	private int numOfTrial = 50000;
+	private int numOfTrial = 1000000;
 
 	private double allTimeBestScore = 1;
 
@@ -43,7 +43,7 @@ public class LearningWithQL implements LearningAgent {
 	// 学習部分
 	// 学習してその中でもっとも良かったものをリプレイ
 	public void learn() {
-		final int SHOW_INTERVALS = 1000;
+		final int SHOW_INTERVALS = 5000;
 
 		long startTime = System.currentTimeMillis();
 		for (int nt = 0; nt < numOfTrial; ++nt) {
@@ -110,6 +110,13 @@ public class LearningWithQL implements LearningAgent {
 		long startTime = System.currentTimeMillis();
 
 		QLAgent.ini();
+
+		if (QLAgent.bestScore < 500) {
+			QLAgent.epsilon = 0.05f;
+		} else {
+			QLAgent.epsilon = 0.01f;
+		}
+
 		/* QLAgentをプレイさせる */
 		MarioAIOptions marioAIOptions = new MarioAIOptions();
 		BasicTask basicTask = new BasicTask(marioAIOptions);
@@ -141,13 +148,15 @@ public class LearningWithQL implements LearningAgent {
 			QLAgent.bestQ = QLAgent.Q.clone();
 		}
 
+		double reward = Math.pow(score / Math.max(500, allTimeBestScore), 2.5) * 1000;
 		// double reward = (2 * Math.pow(score / allTimeBestScore, 2) - 0.5) * 1000;
-		double reward = Math.pow(score / allTimeBestScore, 2.5) * 1000;
 		agent.giveRewardForEntireHistory(reward);
+		double reward2 = score / evaluationInfo.timeSpent * 10;
+		// agent.giveRewardForEntireHistory(reward2);
 
 		long endTime = System.currentTimeMillis();
-		System.out.println(score + " r:" + (int) reward + " s:" + QLAgent.Q.size() + " g:" + evaluationInfo.timeSpent
-				+ "(s) t:" + (endTime - startTime) + "(ms)");
+		System.out.println(score + " r:" + (int) reward + "," + (int) reward2 + " s:" + QLAgent.Q.size() + " g:"
+				+ evaluationInfo.timeSpent + "(s) t:" + (endTime - startTime) + "(ms)");
 
 		return score;
 	}
