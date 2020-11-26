@@ -75,7 +75,6 @@ public class GAAgent extends BasicMarioAIAgent implements Agent, Evolvable, Comp
 	}
 
 	/* compfit()追加記述 */
-
 	int distance;
 
 	public void setFitness(int fitness) {

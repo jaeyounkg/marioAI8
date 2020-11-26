@@ -57,6 +57,8 @@ public class LearningWithGA implements LearningAgent {
 
 	public void learn() {
 
+		final int playIntervals = 50;
+
 		for (int generation = 0; generation < evaluationQuota; generation++) {
 
 			System.out.println("世代 : " + generation);
@@ -75,7 +77,6 @@ public class LearningWithGA implements LearningAgent {
 			}
 
 			/* 選択，交叉 */
-
 			for (int i = bestnum; i < popsize; i += 2) {
 				int[] parentsGene = select();
 				cross(nextagents, parentsGene, i);
@@ -87,12 +88,9 @@ public class LearningWithGA implements LearningAgent {
 			/* 突然変異 */
 			mutate();
 
-			int EndEpoch = 10;
-			if (generation == EndEpoch) {
+			if (generation % playIntervals == playIntervals - 1) {
 				System.out.println("Generation[" + generation + "] : Playing!");
 				halfwayPlayMario(bestAgent);
-				System.out.println("Learning is stopped");
-				break;
 			}
 
 		}
@@ -105,14 +103,9 @@ public class LearningWithGA implements LearningAgent {
 	 */
 	private void compFit() {
 
-		/* GAAgents[i]をプレイさせる */
 		MarioAIOptions marioAIOptions = new MarioAIOptions();
 		BasicTask basicTask = new BasicTask(marioAIOptions);
-
-		/* ステージ生成 */
 		marioAIOptions.setArgs(this.args);
-
-		/* プレイ画面出力するか否か */
 		marioAIOptions.setVisualization(false);
 
 		for (int i = 0; i < popsize; i++) {
@@ -128,9 +121,7 @@ public class LearningWithGA implements LearningAgent {
 			/* 評価値(距離)をセット */
 			EvaluationInfo evaluationInfo = basicTask.getEvaluationInfo();
 			agents[i].setFitness(evaluationInfo.distancePassedCells);
-
 			agents[i].setDistance(evaluationInfo.distancePassedCells);
-
 		}
 
 		/* 降順にソートする */
@@ -146,11 +137,9 @@ public class LearningWithGA implements LearningAgent {
 			bestAgent = (Agent) agents[0].clone(); // bestAgentを更新
 			fmax = presentBestAgentDistance; // fmax更新
 			writeFile(); // bestAgentのxmlを出力
-			System.out.println("outputted haha");
 			System.out.println("fmax : " + fmax);
 		}
 		return;
-
 	}
 
 	/*
@@ -246,14 +235,10 @@ public class LearningWithGA implements LearningAgent {
 		MarioAIOptions marioAIOptions = new MarioAIOptions();
 		BasicTask basicTask = new BasicTask(marioAIOptions);
 
-		/* ステージ生成 */
 		marioAIOptions.setArgs(this.args);
-
-		/* プレイ画面出力するか否か */
 		marioAIOptions.setVisualization(true);
-
-		/* GAAgents[i]をセット */
 		marioAIOptions.setAgent(agent);
+		marioAIOptions.setFPS(100);
 		basicTask.setOptionsAndReset(marioAIOptions);
 
 		if (!basicTask.runSingleEpisode(1)) {
