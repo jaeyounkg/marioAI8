@@ -12,7 +12,7 @@ import ch.idsia.tools.EvaluationInfo;
 import ch.idsia.tools.MarioAIOptions;
 import ch.idsia.utils.wox.serial.Easy;
 import ch.idsia.agents.QLAgent;
-import ch.idsia.agents.QLStateActionPair;
+import ch.idsia.agents.QLStateAction;
 
 public class LearningWithQL implements LearningAgent {
 	private final String FILENAME = "LearnedQLModel.txt";
@@ -41,7 +41,7 @@ public class LearningWithQL implements LearningAgent {
 					String s = br.readLine();
 					Double v = Double.parseDouble(s);
 					if (v != QLAgent.INITIAL_Q) {
-						QLAgent.Q.put(new QLStateActionPair(new QLState(i), j), v);
+						QLAgent.Q.put(new QLStateAction(new QLState(i), j), v);
 					}
 				}
 			}
@@ -175,7 +175,7 @@ public class LearningWithQL implements LearningAgent {
 			for (int i = 0; i < QLState.N_STATES; ++i) {
 				QLState state = new QLState(i);
 				for (int j = 0; j < QLAgent.N_ACTIONS; ++j) {
-					QLStateActionPair pair = new QLStateActionPair(state, j);
+					QLStateAction pair = new QLStateAction(state, j);
 					QLAgent.bestQ[i][j] = QLAgent.Q.getOrDefault(pair, QLAgent.INITIAL_Q);
 				}
 			}

@@ -2,20 +2,20 @@ package ch.idsia.agents;
 
 import java.util.*;
 
-public final class QLStateActionPair {
+public final class QLStateAction {
 
 	public final QLState state;
 	public final int action;
 
-	public QLStateActionPair(QLState state, int action) {
+	public QLStateAction(QLState state, int action) {
 		this.state = state;
 		this.action = action;
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (obj instanceof QLStateActionPair) {
-			QLStateActionPair key = (QLStateActionPair) obj;
+		if (obj instanceof QLStateAction) {
+			QLStateAction key = (QLStateAction) obj;
 			return this.state.toInt() == key.state.toInt() && this.action == key.action;
 		} else {
 			return false;

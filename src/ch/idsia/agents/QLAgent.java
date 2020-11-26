@@ -8,7 +8,7 @@ import ch.idsia.agents.controllers.BasicMarioAIAgent;
 import ch.idsia.benchmark.mario.engine.sprites.Mario;
 import ch.idsia.benchmark.mario.engine.sprites.Sprite;
 import ch.idsia.benchmark.mario.environments.*;
-import ch.idsia.agents.QLStateActionPair;
+import ch.idsia.agents.QLStateAction;
 
 public class QLAgent extends BasicMarioAIAgent implements Agent {
 	static String name = "QLAgent";
@@ -35,10 +35,10 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	// 各エピソードで、ある状態である行動を取ったかどうか
 	// QLStateActionPairはint4つでstate,cliff,ableToJump,action
 	// valueのIntegerはこのQLでは使わない
-	public static HashMap<QLStateActionPair, Integer> selected;
-	public static List<QLStateActionPair> history;
+	public static HashMap<QLStateAction, Integer> selected;
+	public static List<QLStateAction> history;
 	// 行動価値関数 これを基に行動を決める
-	public static HashMap<QLStateActionPair, Double> Q;
+	public static HashMap<QLStateAction, Double> Q;
 	public final static double INITIAL_Q = 0;
 	// learning rate
 	public final static double alpha = 0.1;
@@ -73,9 +73,9 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	// コンストラクタ
 	public QLAgent() {
 		super(name);
-		Q = new HashMap<QLStateActionPair, Double>();
-		selected = new HashMap<QLStateActionPair, Integer>();
-		history = new ArrayList<QLStateActionPair>();
+		Q = new HashMap<QLStateAction, Double>();
+		selected = new HashMap<QLStateAction, Integer>();
+		history = new ArrayList<QLStateAction>();
 		Random random = new Random();
 		// for (int i = 0; i < QLState.N_STATES; ++i) {
 		// for (int j = 0; j < N_ACTIONS; ++j) {
@@ -108,12 +108,12 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 			actions.add(currAction);
 			intToAction(currAction);
 			final QLState state = getState();
-			if (!selected.containsKey(new QLStateActionPair(state, currAction)))
-				selected.put(new QLStateActionPair(state, currAction), 1);
+			if (!selected.containsKey(new QLStateAction(state, currAction)))
+				selected.put(new QLStateAction(state, currAction), 1);
 			else
-				selected.put(new QLStateActionPair(state, currAction),
-						selected.get(new QLStateActionPair(state, currAction)) + 1);
-			history.add(new QLStateActionPair(state, currAction));
+				selected.put(new QLStateAction(state, currAction),
+						selected.get(new QLStateAction(state, currAction)) + 1);
+			history.add(new QLStateAction(state, currAction));
 		} else {
 			// currAction = chooseActionG();
 			if (frameCounter < best.size())
@@ -131,10 +131,10 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	}
 
 	// update Q(`prevState`, `prevAction`) based on current state `curState`
-	public static void updateQ(QLStateActionPair prevStateAction, QLState curState, double reward) {
+	public static void updateQ(QLStateAction prevStateAction, QLState curState, double reward) {
 		double maxQ = 0;
 		for (int a = 0; a < QLAgent.N_ACTIONS; ++a) {
-			maxQ = Math.max(maxQ, Q.getOrDefault(new QLStateActionPair(curState, a), INITIAL_Q));
+			maxQ = Math.max(maxQ, Q.getOrDefault(new QLStateAction(curState, a), INITIAL_Q));
 		}
 		Q.put(prevStateAction,
 				(1 - alpha) * Q.getOrDefault(prevStateAction, INITIAL_Q) + alpha * (reward + gamma * maxQ));
@@ -142,13 +142,13 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 
 	// give rewards for actions taken in the recent `duration` amount of time
 	public void giveRewardForRecentActions(int duration, double reward) {
-		ListIterator<QLStateActionPair> iter = history.listIterator(history.size());
+		ListIterator<QLStateAction> iter = history.listIterator(history.size());
 		if (!iter.hasPrevious())
 			return;
-		QLStateActionPair curPair = iter.previous();
+		QLStateAction curPair = iter.previous();
 		updateQ(curPair, getState(), reward);
 		for (int i = 1; iter.hasPrevious() && i < duration; ++i) {
-			QLStateActionPair prevPair = iter.previous();
+			QLStateAction prevPair = iter.previous();
 			updateQ(prevPair, curPair.state, reward);
 			curPair = prevPair;
 		}
@@ -197,7 +197,7 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 			double max = -Double.MAX_VALUE;
 			QLState s = getState();
 			for (int i = 0; i < N_ACTIONS; ++i) {
-				double q = Q.getOrDefault(new QLStateActionPair(s, i), INITIAL_Q);
+				double q = Q.getOrDefault(new QLStateAction(s, i), INITIAL_Q);
 				if (q > max) {
 					max = q;
 					idx = i;
