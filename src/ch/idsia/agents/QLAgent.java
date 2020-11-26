@@ -1,8 +1,10 @@
 package ch.idsia.agents;
 
 import java.util.*;
+import java.util.Map.Entry;
 import java.math.*;
 import java.lang.Math.*;
+import java.io.*;
 
 import ch.idsia.agents.controllers.BasicMarioAIAgent;
 import ch.idsia.benchmark.mario.engine.sprites.Mario;
@@ -27,7 +29,7 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	public static List<Integer> actions;
 	// 学習中にもっとも良かった行動群
 	public static List<Integer> best;
-	public static double[][] bestQ;
+	public static QLQFunction bestQ;
 	// 学習中にもっとも良かったスコア
 	public static double bestScore;
 	// 毎フレームで貪欲な選択をするかどうか
@@ -38,12 +40,12 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	public static HashMap<QLStateAction, Integer> selected;
 	public static List<QLStateAction> history;
 	// 行動価値関数 これを基に行動を決める
-	public static HashMap<QLStateAction, Double> Q;
+	public static QLQFunction Q;
 	public final static double INITIAL_Q = 0;
 	// learning rate
-	public final static double alpha = 0.1;
+	public static double alpha = 0.1;
 	// discount factor
-	public final static double gamma = 0.5;
+	public static double gamma = 0.5;
 	// 各状態行動対におけるそれまで得た報酬の合計
 	// public static float[][] sumValue;
 	// ある状態である行動を取った回数. initialized to 1
@@ -73,15 +75,10 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	// コンストラクタ
 	public QLAgent() {
 		super(name);
-		Q = new HashMap<QLStateAction, Double>();
+		Q = new QLQFunction();
 		selected = new HashMap<QLStateAction, Integer>();
 		history = new ArrayList<QLStateAction>();
 		Random random = new Random();
-		// for (int i = 0; i < QLState.N_STATES; ++i) {
-		// for (int j = 0; j < N_ACTIONS; ++j) {
-		// Q[i][j] = random.nextDouble() * 1000;
-		// }
-		// }
 
 		actions = new ArrayList<Integer>();
 		best = new ArrayList<Integer>();
@@ -93,12 +90,12 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 
 		// give penalty for collisions
 		if (Mario.collisionsWithCreatures > prevCollisionsWithCreatures) {
-			givePenaltyForRecentActions(8, 100);
+			// givePenaltyForRecentActions(8, 1000);
 		}
 
 		// give reward for kills
 		if (getKillsTotal > prevKillsTotal) {
-			giveRewardForRecentActions(8, 10);
+			// giveRewardForRecentActions(8, 10);
 		}
 
 		clearAction();
@@ -136,8 +133,12 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 		for (int a = 0; a < QLAgent.N_ACTIONS; ++a) {
 			maxQ = Math.max(maxQ, Q.getOrDefault(new QLStateAction(curState, a), INITIAL_Q));
 		}
-		Q.put(prevStateAction,
-				(1 - alpha) * Q.getOrDefault(prevStateAction, INITIAL_Q) + alpha * (reward + gamma * maxQ));
+
+		if (Q.containsKey(prevStateAction)) {
+			Q.put(prevStateAction, (1 - alpha) * Q.get(prevStateAction) + alpha * (reward + gamma * maxQ));
+		} else {
+			Q.put(prevStateAction, reward + gamma * maxQ);
+		}
 	}
 
 	// give rewards for actions taken in the recent `duration` amount of time
@@ -162,6 +163,39 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	// give rewards for the entire state-action pairs
 	public void giveRewardForEntireHistory(double reward) {
 		giveRewardForRecentActions(history.size(), reward);
+	}
+
+	public static void saveModelToFile(QLQFunction Q, String filename) throws IOException {
+		// 学習した行動価値関数を書き込み
+		File f = new File(filename);
+		f.createNewFile();
+		BufferedWriter bw = new BufferedWriter(new FileWriter(f));
+		bw.write(String.valueOf(Q.size()));
+		bw.newLine();
+		for (Entry<QLStateAction, Double> entry : Q.entrySet()) {
+			QLStateAction sa = entry.getKey();
+			Double q = entry.getValue();
+			bw.write(String.valueOf(sa.toLong()));
+			bw.newLine();
+			bw.write(String.valueOf(q));
+			bw.newLine();
+		}
+		bw.close();
+	}
+
+	public static void loadModelFromFile(String filename) throws NumberFormatException, IOException {
+		File f = new File(filename);
+		BufferedReader br = new BufferedReader(new FileReader(f));
+		String s = br.readLine();
+		int n = Integer.parseInt(s);
+		for (int i = 0; i < n; ++i) {
+			s = br.readLine();
+			long key = Long.parseLong(s);
+			s = br.readLine();
+			Double value = Double.parseDouble(s);
+			QLAgent.Q.put(new QLStateAction(key), value);
+		}
+		br.close();
 	}
 
 	// 障害物を検出し、stateの各bitに0,1で格納

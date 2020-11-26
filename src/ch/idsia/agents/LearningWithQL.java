@@ -34,19 +34,8 @@ public class LearningWithQL implements LearningAgent {
 		QLAgent.bestScore = 0;
 
 		try {
-			File f = new File(FILENAME);
-			BufferedReader br = new BufferedReader(new FileReader(f));
-			for (int i = 0; i < QLState.N_STATES; ++i) {
-				for (int j = 0; j < QLAgent.N_ACTIONS; ++j) {
-					String s = br.readLine();
-					Double v = Double.parseDouble(s);
-					if (v != QLAgent.INITIAL_Q) {
-						QLAgent.Q.put(new QLStateAction(new QLState(i), j), v);
-					}
-				}
-			}
-			br.close();
-		} catch (IOException e) {
+			QLAgent.loadModelFromFile(FILENAME);
+		} catch (Exception e) {
 			System.out.println(e);
 		}
 	}
@@ -75,19 +64,9 @@ public class LearningWithQL implements LearningAgent {
 				show();
 
 				try {
-					// 学習した行動価値関数を書き込み
-					File f = new File(FILENAME);
-					f.createNewFile();
-					BufferedWriter bw = new BufferedWriter(new FileWriter(f));
-					for (int i = 0; i < QLState.N_STATES; ++i) {
-						for (int j = 0; j < QLAgent.N_ACTIONS; ++j) {
-							bw.write(String.valueOf(QLAgent.bestQ[i][j]));
-							bw.newLine();
-						}
-					}
-					bw.close();
+					QLAgent.saveModelToFile(QLAgent.bestQ, FILENAME);
 				} catch (IOException e) {
-					System.out.println(e);
+					System.out.println(e.getMessage());
 				}
 
 				startTime = System.currentTimeMillis();
@@ -154,35 +133,16 @@ public class LearningWithQL implements LearningAgent {
 		// 報酬取得
 		double score = evaluationInfo.distancePassedPhys;
 
-		/* Normalize num values when they are too large and slowing down learning */
-		// if (QLAgent.getMaxNum() > 10000) {
-		// for (int i = 0; i < QLState.N_STATES; ++i) {
-		// for (int j = 0; j < QLAgent.N_ACTIONS; ++j) {
-		// if (QLAgent.num[i][j] > 3) {
-		// QLAgent.num[i][j] /= 2;
-		// QLAgent.sumValue[i][j] /= 2;
-		// }
-		// }
-		// }
-		// }
-
 		// ベストスコアが出たら更新
 		allTimeBestScore = Math.max(allTimeBestScore, score);
 		if (score > QLAgent.bestScore) {
 			QLAgent.bestScore = score;
 			QLAgent.best = new ArrayList<Integer>(QLAgent.actions);
-			QLAgent.bestQ = new double[QLState.N_STATES][QLAgent.N_ACTIONS];
-			for (int i = 0; i < QLState.N_STATES; ++i) {
-				QLState state = new QLState(i);
-				for (int j = 0; j < QLAgent.N_ACTIONS; ++j) {
-					QLStateAction pair = new QLStateAction(state, j);
-					QLAgent.bestQ[i][j] = QLAgent.Q.getOrDefault(pair, QLAgent.INITIAL_Q);
-				}
-			}
+			QLAgent.bestQ = QLAgent.Q.clone();
 		}
 
 		// double reward = (2 * Math.pow(score / allTimeBestScore, 2) - 0.5) * 1000;
-		double reward = Math.pow(score / allTimeBestScore, 2) * 1000;
+		double reward = Math.pow(score / allTimeBestScore, 2.5) * 1000;
 		agent.giveRewardForEntireHistory(reward);
 
 		long endTime = System.currentTimeMillis();

@@ -12,11 +12,16 @@ public final class QLStateAction {
 		this.action = action;
 	}
 
+	public QLStateAction(long from) {
+		this.state = new QLState(from % QLState.N_STATES);
+		this.action = (int) (from / QLState.N_STATES);
+	}
+
 	@Override
 	public boolean equals(Object obj) {
 		if (obj instanceof QLStateAction) {
 			QLStateAction key = (QLStateAction) obj;
-			return this.state.toInt() == key.state.toInt() && this.action == key.action;
+			return this.state.toLong() == key.state.toLong() && this.action == key.action;
 		} else {
 			return false;
 		}
@@ -24,14 +29,14 @@ public final class QLStateAction {
 
 	@Override
 	public int hashCode() {
-		return (state.toInt() >> 4) + action;
+		return ((int) state.toLong() >> 4) + action;
 	}
 
-	public QLState getState() {
-		return state;
+	public QLStateAction clone() {
+		return new QLStateAction(state.clone(), action);
 	}
 
-	public int getAction() {
-		return action;
+	public long toLong() {
+		return action * QLState.N_STATES + state.toLong();
 	}
 }
