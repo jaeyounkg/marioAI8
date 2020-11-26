@@ -2,7 +2,7 @@ package ch.idsia.agents;
 
 import ch.idsia.benchmark.mario.engine.sprites.Sprite;
 
-public final class QLState {
+public final class DQLState {
 
     public final static int RANGE_START_X = 8;
     public final static int RANGE_START_Y = 7;
@@ -25,7 +25,7 @@ public final class QLState {
     // TODO ACTUALLY IMPLEMENT fromInt()
     private int pre = -1;
 
-    public QLState(byte[][] field, byte[][] enemies, float[] marioFloatPos, boolean onGround, boolean cliff,
+    public DQLState(byte[][] field, byte[][] enemies, float[] marioFloatPos, boolean onGround, boolean cliff,
             boolean ableToJump) {
         this.field = new byte[19][19];
         for (int i = 0; i < 19; ++i) {
@@ -41,18 +41,6 @@ public final class QLState {
         this.cliff = cliff;
         this.ableToJump = ableToJump;
     }
-
-    // public QLState(int pre) {
-    // this.field = new byte[19][19];
-    // this.enemies = new byte[19][19];
-    // this.x = 0;
-    // this.y = 0;
-    // this.onGround = false;
-    // this.cliff = false;
-    // this.ableToJump = false;
-
-    // this.pre = pre;
-    // }
 
     public double[] toVector() {
         double[] vec = new double[N_DIM];

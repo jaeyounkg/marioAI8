@@ -7,15 +7,15 @@ import java.io.IOException;
 
 import ch.idsia.agents.Agent;
 import ch.idsia.agents.LearningAgent;
-import ch.idsia.agents.LearningWithQL;
-import ch.idsia.agents.QLAgent;
-import ch.idsia.agents.QLState;
+import ch.idsia.agents.LearningWithDQL;
+import ch.idsia.agents.DQLAgent;
+import ch.idsia.agents.DQLState;
 import ch.idsia.benchmark.tasks.BasicTask;
 import ch.idsia.benchmark.tasks.LearningTask;
 import ch.idsia.tools.EvaluationInfo;
 import ch.idsia.tools.MarioAIOptions;
 
-public final class LearningTrackQL {
+public final class LearningTrackDQL {
     final static long numberOfTrials = 10000;
     final static boolean scoring = false;
     private static int killsSum = 0;
@@ -145,18 +145,18 @@ public final class LearningTrackQL {
         switch (runWhat) {
             /* MainTask4_1.java */
             case 1:
-                learningAgent = new LearningWithQL("-lde on -i on -ltb off -ld 2 -ls 0 -le g");
+                learningAgent = new LearningWithDQL("-lde on -i on -ltb off -ld 2 -ls 0 -le g");
                 break;
 
             /* MainTask4_2.java */
             case 2:
-                learningAgent = new LearningWithQL(
+                learningAgent = new LearningWithDQL(
                         "-lco off -lb on -le off -lhb off -lg on -ltb on -lhs off -lca on -lde on -ld 5 -ls 133829");
                 break;
 
             /* MainTask4_3.java */
             default:
-                learningAgent = new LearningWithQL("-lde on -i off -ld 30 -ls 133434 -lhb on");
+                learningAgent = new LearningWithDQL("-lde on -i off -ld 30 -ls 133434 -lhb on");
         }
 
         System.out.println("main.learningAgent = " + learningAgent);

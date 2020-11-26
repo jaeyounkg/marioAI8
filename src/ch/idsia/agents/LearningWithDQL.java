@@ -11,14 +11,14 @@ import ch.idsia.benchmark.tasks.LearningTask;
 import ch.idsia.tools.EvaluationInfo;
 import ch.idsia.tools.MarioAIOptions;
 import ch.idsia.utils.wox.serial.Easy;
-import ch.idsia.agents.QLAgent;
-import ch.idsia.agents.QLStateAction;
+import ch.idsia.agents.DQLAgent;
+import ch.idsia.agents.DQLStateAction;
 
-public class LearningWithQL implements LearningAgent {
-	private final String FILENAME = "LearnedQLModel.txt";
+public class LearningWithDQL implements LearningAgent {
+	private final String FILENAME = "LearnedDQLModel.txt";
 
-	private QLAgent agent;
-	private String name = "LearningWithQL";
+	private DQLAgent agent;
+	private String name = "LearningWithDQL";
 	// 目標値(4096.0はステージの右端)
 	private float goal = 4096.0f;
 	private String args;
@@ -26,10 +26,10 @@ public class LearningWithQL implements LearningAgent {
 	private int numOfTrial = 100000;
 
 	// コンストラクタ
-	public LearningWithQL(String args) {
+	public LearningWithDQL(String args) {
 		this.args = args;
-		agent = new QLAgent();
-		QLAgent.bestScore = 0;
+		agent = new DQLAgent();
+		DQLAgent.bestScore = 0;
 
 		// try {
 		// File f = new File(FILENAME);
@@ -66,11 +66,11 @@ public class LearningWithQL implements LearningAgent {
 
 				long endTime = System.currentTimeMillis();
 
-				allTimeBestScore = Math.max(allTimeBestScore, QLAgent.bestScore);
+				allTimeBestScore = Math.max(allTimeBestScore, DQLAgent.bestScore);
 				System.out.println("time for " + SHOW_INTERVALS + " plays:" + (endTime - startTime) + "(ms)");
-				System.out.println("current best score: " + QLAgent.bestScore);
+				System.out.println("current best score: " + DQLAgent.bestScore);
 				System.out.println("all time best score: " + allTimeBestScore);
-				QLAgent.bestScore = 0;
+				DQLAgent.bestScore = 0;
 
 				show();
 
@@ -99,13 +99,13 @@ public class LearningWithQL implements LearningAgent {
 
 	// リプレイ
 	public void show() {
-		QLAgent.ini();
+		DQLAgent.ini();
 		MarioAIOptions marioAIOptions = new MarioAIOptions();
 		BasicTask basicTask = new BasicTask(marioAIOptions);
 
 		/* ステージ生成 */
 		marioAIOptions.setArgs(this.args);
-		QLAgent.setMode(true);
+		DQLAgent.setMode(true);
 
 		/* プレイ画面出力するか否か */
 		marioAIOptions.setVisualization(true);
@@ -131,14 +131,14 @@ public class LearningWithQL implements LearningAgent {
 	public double run() {
 		long startTime = System.currentTimeMillis();
 
-		QLAgent.ini();
+		DQLAgent.ini();
 		/* QLAgentをプレイさせる */
 		MarioAIOptions marioAIOptions = new MarioAIOptions();
 		BasicTask basicTask = new BasicTask(marioAIOptions);
 
 		/* ステージ生成 */
 		marioAIOptions.setArgs(this.args);
-		QLAgent.setMode(false);
+		DQLAgent.setMode(false);
 
 		/* プレイ画面出力するか否か */
 		marioAIOptions.setVisualization(false);
@@ -169,12 +169,12 @@ public class LearningWithQL implements LearningAgent {
 		// }
 
 		// ベストスコアが出たら更新
-		if (score > QLAgent.bestScore) {
-			QLAgent.bestScore = score;
-			QLAgent.bestActions = new ArrayList<QLAction>(QLAgent.actions);
+		if (score > DQLAgent.bestScore) {
+			DQLAgent.bestScore = score;
+			DQLAgent.bestActions = new ArrayList<DQLAction>(DQLAgent.actions);
 		}
 
-		double reward = Math.max(0, Math.pow(score / QLAgent.bestScore, 1.5));
+		double reward = Math.max(0, Math.pow(score / DQLAgent.bestScore, 1.5));
 		agent.giveRewardForEntireHistory(reward);
 		// if (agent.getPos()[1] / 16.0 > 16) {
 		// ListIterator<QLStateAction> iter =

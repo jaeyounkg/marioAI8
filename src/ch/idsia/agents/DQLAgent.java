@@ -9,10 +9,10 @@ import ch.idsia.benchmark.mario.engine.sprites.Mario;
 import ch.idsia.benchmark.mario.engine.sprites.Sprite;
 import ch.idsia.benchmark.mario.environments.*;
 import ch.idsia.evolution.MLP;
-import ch.idsia.agents.QLStateAction;
+import ch.idsia.agents.DQLStateAction;
 
-public class QLAgent extends BasicMarioAIAgent implements Agent {
-	static String name = "QLAgent";
+public class DQLAgent extends BasicMarioAIAgent implements Agent {
+	static String name = "DQLAgent";
 	public static final int PENALTY_FOR_COLLISION = 1000;
 
 	// 毎フレームもっとも価値の高い行動をするが、確率epsilonで他の行動を等確率で選択
@@ -20,9 +20,9 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	// もっとも良い選択の再現に使用
 	private static int frameCounter = 0;
 	// 毎エピソードで選択した行動を全フレーム分とっておく
-	public static List<QLAction> actions;
+	public static List<DQLAction> actions;
 	// 学習中にもっとも良かった行動群
-	public static List<QLAction> bestActions;
+	public static List<DQLAction> bestActions;
 	// 学習中にもっとも良かったスコア
 	public static double bestScore;
 	public static int bestLevelSeed;
@@ -31,8 +31,8 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	// 各エピソードで、ある状態である行動を取ったかどうか
 	// QLStateActionはint4つでstate,cliff,ableToJump,action
 	// valueのIntegerはこのQLでは使わない
-	public static HashMap<QLStateAction, Integer> selected;
-	public static List<QLStateAction> history;
+	public static HashMap<DQLStateAction, Integer> selected;
+	public static List<DQLStateAction> history;
 	// learning rate
 	public final static double alpha = 0.1;
 	// discount factor
@@ -64,15 +64,15 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	}
 
 	// コンストラクタ
-	public QLAgent() {
+	public DQLAgent() {
 		super(name);
-		selected = new HashMap<QLStateAction, Integer>();
-		history = new ArrayList<QLStateAction>();
-		predQ = new MLP(QLState.N_DIM, 16, QLAction.N_DIM);
+		selected = new HashMap<DQLStateAction, Integer>();
+		history = new ArrayList<DQLStateAction>();
+		predQ = new MLP(DQLState.N_DIM, 16, DQLAction.N_DIM);
 		mainQ = predQ.copy();
 
-		actions = new ArrayList<QLAction>();
-		bestActions = new ArrayList<QLAction>();
+		actions = new ArrayList<DQLAction>();
+		bestActions = new ArrayList<DQLAction>();
 	}
 
 	public float[] getPos() {
@@ -107,18 +107,18 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 		}
 
 		clearAction();
-		QLAction currAction;
+		DQLAction currAction;
 		if (!mode) {
 			currAction = chooseAction();
 			actions.add(currAction);
 			action = currAction.action.clone();
-			final QLState currState = getState();
-			if (!selected.containsKey(new QLStateAction(currState, currAction)))
-				selected.put(new QLStateAction(currState, currAction), 1);
+			final DQLState currState = getState();
+			if (!selected.containsKey(new DQLStateAction(currState, currAction)))
+				selected.put(new DQLStateAction(currState, currAction), 1);
 			else
-				selected.put(new QLStateAction(currState, currAction),
-						selected.get(new QLStateAction(currState, currAction)) + 1);
-			history.add(new QLStateAction(currState, currAction));
+				selected.put(new DQLStateAction(currState, currAction),
+						selected.get(new DQLStateAction(currState, currAction)) + 1);
+			history.add(new DQLStateAction(currState, currAction));
 		} else {
 			if (frameCounter < bestActions.size()) {
 				currAction = bestActions.get(frameCounter);
@@ -136,12 +136,12 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	}
 
 	// update Q(`prevState`, `prevAction`) based on current state `curState`
-	public static void updateQ(QLStateAction prevStateAction, QLState curState, double reward) {
+	public static void updateQ(DQLStateAction prevStateAction, DQLState curState, double reward) {
 		double maxQ = 0;
 		int maxA = 0;
 
 		double[] qs = mainQ.propagate(curState.toVector());
-		for (int a = 0; a < QLAction.N_DIM; ++a) {
+		for (int a = 0; a < DQLAction.N_DIM; ++a) {
 			if (qs[a] > maxQ) {
 				maxQ = qs[a];
 				maxA = a;
@@ -160,12 +160,12 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 
 	// give rewards for actions taken in the recent `duration` amount of time
 	public void giveRewardForRecentActions(int duration, double reward) {
-		ListIterator<QLStateAction> iter = history.listIterator(Math.max(0, history.size() - duration - 1));
+		ListIterator<DQLStateAction> iter = history.listIterator(Math.max(0, history.size() - duration - 1));
 		if (!iter.hasNext())
 			return;
-		QLStateAction prevPair = iter.next();
+		DQLStateAction prevPair = iter.next();
 		while (iter.hasNext()) {
-			QLStateAction pair = iter.next();
+			DQLStateAction pair = iter.next();
 			updateQ(prevPair, pair.getState(), reward);
 			prevPair = pair;
 		}
@@ -181,7 +181,7 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	// ここでマリオが得る情報をほとんど決めている
 	// ついでにマリオが地面にいるかも取得
 	// 崖検出
-	public QLState getState() {
+	public DQLState getState() {
 		boolean cliff = true;
 		for (int i = 0; i < 10; ++i) {
 			if (getReceptiveFieldCellValue(marioEgoRow + i, marioEgoCol + 1) != 0) {
@@ -190,17 +190,17 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 			}
 		}
 
-		QLState state = new QLState(levelScene, enemies, marioFloatPos, isMarioOnGround, cliff, isMarioAbleToJump);
+		DQLState state = new DQLState(levelScene, enemies, marioFloatPos, isMarioOnGround, cliff, isMarioAbleToJump);
 		return state;
 	}
 
 	// 行動価値関数を基に行動選択
-	public QLAction chooseAction() {
+	public DQLAction chooseAction() {
 		float r = (float) (Math.random());
 		int idx = 0;
 		if (r < epsilon) {
 			float sum = 0;
-			float d = epsilon / (float) QLAction.N_DIM;
+			float d = epsilon / (float) DQLAction.N_DIM;
 			sum += d;
 			while (sum < r) {
 				sum += d;
@@ -210,7 +210,7 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 			predQ.propagate(getState().toVector());
 			idx = predQ.getOutputMaxElem();
 		}
-		return new QLAction(idx);
+		return new DQLAction(idx);
 	}
 
 	// 行動選択前にactionを一旦全部falseにする

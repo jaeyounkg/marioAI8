@@ -4,7 +4,7 @@ import ch.idsia.benchmark.mario.engine.sprites.Mario;
 import ch.idsia.benchmark.mario.engine.sprites.Sprite;
 import ch.idsia.benchmark.mario.environments.Environment;
 
-public final class QLAction {
+public final class DQLAction {
 
     public static final int N_ACTIONS = 5;
     public static final int N_DIM = 12;
@@ -16,7 +16,7 @@ public final class QLAction {
     public final boolean action[];
     public final int n;
 
-    public QLAction(int n) {
+    public DQLAction(int n) {
         action = new boolean[Environment.numberOfKeys];
         action[Mario.KEY_JUMP] = (n == 0 || (n > 4 && n < 11));
         action[Mario.KEY_SPEED] = (n == 1 || n == 5 || n == 9 || n == 10);

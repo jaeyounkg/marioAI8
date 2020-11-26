@@ -4,22 +4,22 @@ import java.util.*;
 
 import ch.idsia.benchmark.mario.engine.sprites.Sprite;
 
-public final class QLStateAction {
+public final class DQLStateAction {
 
 	// public final static int N_DIM = QLState.N_DIM + QLAction.N_DIM;
 
-	private final QLState state;
-	private final QLAction action;
+	private final DQLState state;
+	private final DQLAction action;
 
-	public QLStateAction(QLState state, QLAction action) {
+	public DQLStateAction(DQLState state, DQLAction action) {
 		this.state = state;
 		this.action = action;
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (obj instanceof QLStateAction) {
-			QLStateAction key = (QLStateAction) obj;
+		if (obj instanceof DQLStateAction) {
+			DQLStateAction key = (DQLStateAction) obj;
 			return this.state.toInt() == key.state.toInt() && this.action == key.action;
 		} else {
 			return false;
@@ -31,11 +31,11 @@ public final class QLStateAction {
 		return (state.toInt() >> 4) + action.toInt();
 	}
 
-	public QLState getState() {
+	public DQLState getState() {
 		return state;
 	}
 
-	public QLAction getAction() {
+	public DQLAction getAction() {
 		return action;
 	}
 
