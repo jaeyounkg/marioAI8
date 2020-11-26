@@ -18,7 +18,6 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	/*
 	 * enum Action{ J, S, R, L, D, JS, JR, JL, JD, JSR, JSL, NONE, }
 	 */
-	public static final int PENALTY_FOR_COLLISION = 1000;
 
 	// 毎フレームもっとも価値の高い行動をするが、確率epsilonで他の行動を等確率で選択
 	public static final float epsilon = 0.005f;
@@ -99,16 +98,7 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 
 		// give reward for kills
 		if (getKillsTotal > prevKillsTotal) {
-			giveRewardForRecentActions(8, 0.1);
-		}
-
-		// give penalty for not moving
-		if (x == prevX) {
-			givePenaltyForRecentActions(1, 0.01);
-		}
-
-		if (x < prevX) {
-			givePenaltyForRecentActions(1, 0.002);
+			giveRewardForRecentActions(8, 10);
 		}
 
 		clearAction();
@@ -152,16 +142,16 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 
 	// give rewards for actions taken in the recent `duration` amount of time
 	public void giveRewardForRecentActions(int duration, double reward) {
-		ListIterator<QLStateActionPair> iter = history.listIterator(Math.max(0, history.size() - duration - 1));
-		if (!iter.hasNext())
+		ListIterator<QLStateActionPair> iter = history.listIterator(history.size());
+		if (!iter.hasPrevious())
 			return;
-		QLStateActionPair prevPair = iter.next();
-		while (iter.hasNext()) {
-			QLStateActionPair pair = iter.next();
-			updateQ(prevPair, pair.getState(), reward);
-			prevPair = pair;
+		QLStateActionPair curPair = iter.previous();
+		updateQ(curPair, getState(), reward);
+		for (int i = 1; iter.hasPrevious() && i < duration; ++i) {
+			QLStateActionPair prevPair = iter.previous();
+			updateQ(prevPair, curPair.state, reward);
+			curPair = prevPair;
 		}
-		updateQ(prevPair, getState(), reward);
 	}
 
 	// give penalty for actions taken in the recent `duration` amount of time

@@ -25,6 +25,8 @@ public class LearningWithQL implements LearningAgent {
 	// 試行回数
 	private int numOfTrial = 50000;
 
+	private double allTimeBestScore = 1;
+
 	// コンストラクタ
 	public LearningWithQL(String args) {
 		this.args = args;
@@ -61,11 +63,14 @@ public class LearningWithQL implements LearningAgent {
 				show();
 				break;
 			}
-			if (nt % SHOW_INTERVALS == 999) {
+			if (nt % SHOW_INTERVALS == SHOW_INTERVALS - 1) {
 
 				long endTime = System.currentTimeMillis();
+
 				System.out.println("time for " + SHOW_INTERVALS + " plays:" + (endTime - startTime) + "(ms)");
-				System.out.println("best score: " + QLAgent.bestScore);
+				System.out.println("current best score: " + QLAgent.bestScore);
+				System.out.println("all time best score: " + allTimeBestScore);
+				QLAgent.bestScore = 0;
 
 				show();
 
@@ -106,6 +111,7 @@ public class LearningWithQL implements LearningAgent {
 		marioAIOptions.setVisualization(true);
 		/* QLAgentをセット */
 		marioAIOptions.setAgent(agent);
+		marioAIOptions.setFPS(100);
 		basicTask.setOptionsAndReset(marioAIOptions);
 
 		if (!basicTask.runSingleEpisode(1)) {
@@ -161,6 +167,7 @@ public class LearningWithQL implements LearningAgent {
 		// }
 
 		// ベストスコアが出たら更新
+		allTimeBestScore = Math.max(allTimeBestScore, score);
 		if (score > QLAgent.bestScore) {
 			QLAgent.bestScore = score;
 			QLAgent.best = new ArrayList<Integer>(QLAgent.actions);
@@ -174,11 +181,13 @@ public class LearningWithQL implements LearningAgent {
 			}
 		}
 
-		double reward = score + 0.1 * (score - QLAgent.bestScore);
+		// double reward = (2 * Math.pow(score / allTimeBestScore, 2) - 0.5) * 1000;
+		double reward = Math.pow(score / allTimeBestScore, 2) * 1000;
 		agent.giveRewardForEntireHistory(reward);
 
 		long endTime = System.currentTimeMillis();
-		System.out.println(score + " r:" + reward + " s:" + QLAgent.Q.size() + " t:" + (endTime - startTime) + "(ms)");
+		System.out.println(score + " r:" + (int) reward + " s:" + QLAgent.Q.size() + " g:" + evaluationInfo.timeSpent
+				+ "(s) t:" + (endTime - startTime) + "(ms)");
 
 		return score;
 	}

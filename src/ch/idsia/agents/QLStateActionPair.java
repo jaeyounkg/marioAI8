@@ -4,8 +4,8 @@ import java.util.*;
 
 public final class QLStateActionPair {
 
-	private final QLState state;
-	private final int action;
+	public final QLState state;
+	public final int action;
 
 	public QLStateActionPair(QLState state, int action) {
 		this.state = state;
