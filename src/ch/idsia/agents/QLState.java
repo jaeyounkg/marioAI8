@@ -4,7 +4,10 @@ import ch.idsia.benchmark.mario.engine.sprites.Sprite;
 
 public final class QLState {
 
-    public static final int N_STATES = (1 << 15);
+    public final static int RANGE_START_X = 8;
+    public final static int RANGE_START_Y = 7;
+    public final static int RANGE = 5;
+    public final static int N_DIM = RANGE * RANGE * 2 + 5;
     // 前方2マスの縦何マスを取得するか
     public static final int WIDTH = 3;
 
@@ -50,6 +53,29 @@ public final class QLState {
 
     // this.pre = pre;
     // }
+
+    public double[] toVector() {
+        double[] vec = new double[N_DIM];
+
+        int startX = RANGE_START_X, startY = RANGE_START_Y;
+        for (int i = 0; i < RANGE; ++i) {
+            for (int j = 0; j < RANGE; ++j) {
+                vec[i * RANGE + j] = (field[startY + i][startX + j] != 0) ? 1 : 0;
+            }
+        }
+        for (int i = 0; i < RANGE; ++i) {
+            for (int j = 0; j < RANGE; ++j) {
+                vec[RANGE * RANGE + i * RANGE + j] = (enemies[startY + i][startX + j] != Sprite.KIND_NONE) ? 1 : 0;
+            }
+        }
+
+        vec[RANGE * RANGE * 2] = onGround ? 1 : 0;
+        vec[RANGE * RANGE * 2 + 1] = cliff ? 1 : 0;
+        vec[RANGE * RANGE * 2 + 2] = ableToJump ? 1 : 0;
+        vec[RANGE * RANGE * 2 + 3] = x;
+        vec[RANGE * RANGE * 2 + 4] = y;
+        return vec;
+    }
 
     public int toInt() {
         if (pre >= 0)

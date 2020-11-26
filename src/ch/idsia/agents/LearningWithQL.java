@@ -23,7 +23,7 @@ public class LearningWithQL implements LearningAgent {
 	private float goal = 4096.0f;
 	private String args;
 	// 試行回数
-	private int numOfTrial = 50000;
+	private int numOfTrial = 100000;
 
 	// コンストラクタ
 	public LearningWithQL(String args) {
@@ -52,7 +52,7 @@ public class LearningWithQL implements LearningAgent {
 	// 学習部分
 	// 学習してその中でもっとも良かったものをリプレイ
 	public void learn() {
-		final int SHOW_INTERVALS = 100;
+		final int SHOW_INTERVALS = 1000;
 		double allTimeBestScore = 0;
 
 		long startTime = System.currentTimeMillis();
@@ -70,7 +70,7 @@ public class LearningWithQL implements LearningAgent {
 				System.out.println("time for " + SHOW_INTERVALS + " plays:" + (endTime - startTime) + "(ms)");
 				System.out.println("current best score: " + QLAgent.bestScore);
 				System.out.println("all time best score: " + allTimeBestScore);
-				// QLAgent.bestScore = 0;
+				QLAgent.bestScore = 0;
 
 				show();
 
@@ -144,9 +144,7 @@ public class LearningWithQL implements LearningAgent {
 		marioAIOptions.setVisualization(false);
 		/* QLAgentをセット */
 		marioAIOptions.setAgent(agent);
-		// Random random = new Random();
-		// int seed = random.nextInt();
-		// marioAIOptions.setLevelRandSeed(seed);
+		marioAIOptions.setTimeLimit(60);
 		basicTask.setOptionsAndReset(marioAIOptions);
 
 		if (!basicTask.runSingleEpisode(1)) {
@@ -172,12 +170,11 @@ public class LearningWithQL implements LearningAgent {
 
 		// ベストスコアが出たら更新
 		if (score > QLAgent.bestScore) {
-			// QLAgent.bestLevelSeed = seed;
 			QLAgent.bestScore = score;
-			QLAgent.best = new ArrayList<Integer>(QLAgent.actions);
+			QLAgent.bestActions = new ArrayList<QLAction>(QLAgent.actions);
 		}
 
-		double reward = Math.max(0, score / QLAgent.bestScore * 2);
+		double reward = Math.max(0, Math.pow(score / QLAgent.bestScore, 1.5));
 		agent.giveRewardForEntireHistory(reward);
 		// if (agent.getPos()[1] / 16.0 > 16) {
 		// ListIterator<QLStateAction> iter =

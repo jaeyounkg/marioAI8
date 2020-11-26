@@ -6,14 +6,12 @@ import ch.idsia.benchmark.mario.engine.sprites.Sprite;
 
 public final class QLStateAction {
 
-	public final static int RANGE = 7;
-	public final static int N_STATE_DIM = RANGE * RANGE * 2 + 5;
-	public final static int N_DIM = N_STATE_DIM + 5;
+	// public final static int N_DIM = QLState.N_DIM + QLAction.N_DIM;
 
 	private final QLState state;
-	private final int action;
+	private final QLAction action;
 
-	public QLStateAction(QLState state, int action) {
+	public QLStateAction(QLState state, QLAction action) {
 		this.state = state;
 		this.action = action;
 	}
@@ -30,45 +28,47 @@ public final class QLStateAction {
 
 	@Override
 	public int hashCode() {
-		return (state.toInt() >> 4) + action;
+		return (state.toInt() >> 4) + action.toInt();
 	}
 
 	public QLState getState() {
 		return state;
 	}
 
-	public int getAction() {
+	public QLAction getAction() {
 		return action;
 	}
 
-	public double[] toVector() {
-		double[] vec = new double[N_DIM];
+	// public double[] toVector() {
+	// double[] vec = new double[N_DIM];
 
-		int startX = 8, startY = 6;
-		for (int i = 0; i < RANGE; ++i) {
-			for (int j = 0; j < RANGE; ++j) {
-				vec[i * RANGE + j] = (state.field[startY + i][startX + j] != 0) ? 1 : 0;
-			}
-		}
-		for (int i = 0; i < RANGE; ++i) {
-			for (int j = 0; j < RANGE; ++j) {
-				vec[RANGE * RANGE + i * RANGE + j] = (state.enemies[startY + i][startX + j] != Sprite.KIND_NONE) ? 1
-						: 0;
-			}
-		}
-		vec[RANGE * RANGE * 2] = state.onGround ? 1 : 0;
-		vec[RANGE * RANGE * 2 + 1] = state.cliff ? 1 : 0;
-		vec[RANGE * RANGE * 2 + 2] = state.ableToJump ? 1 : 0;
-		vec[RANGE * RANGE * 2 + 3] = state.x;
-		vec[RANGE * RANGE * 2 + 4] = state.y;
+	// int startX = 8, startY = 6;
+	// for (int i = 0; i < RANGE; ++i) {
+	// for (int j = 0; j < RANGE; ++j) {
+	// vec[i * RANGE + j] = (state.field[startY + i][startX + j] != 0) ? 1 : 0;
+	// }
+	// }
+	// for (int i = 0; i < RANGE; ++i) {
+	// for (int j = 0; j < RANGE; ++j) {
+	// vec[RANGE * RANGE + i * RANGE + j] = (state.enemies[startY + i][startX + j]
+	// != Sprite.KIND_NONE) ? 1
+	// : 0;
+	// }
+	// }
+	// vec[RANGE * RANGE * 2] = state.onGround ? 1 : 0;
+	// vec[RANGE * RANGE * 2 + 1] = state.cliff ? 1 : 0;
+	// vec[RANGE * RANGE * 2 + 2] = state.ableToJump ? 1 : 0;
+	// vec[RANGE * RANGE * 2 + 3] = state.x;
+	// vec[RANGE * RANGE * 2 + 4] = state.y;
 
-		// JUMP, SPEED, RIGHT, LEFT, DOWN
-		vec[N_STATE_DIM] = (action == 0 || (action > 4 && action < 11)) ? 1 : 0;
-		vec[N_STATE_DIM + 1] = (action == 1 || action == 5 || action == 9 || action == 10) ? 1 : 0;
-		vec[N_STATE_DIM + 2] = (action == 2 || action == 6 || action == 9) ? 1 : 0;
-		vec[N_STATE_DIM + 3] = (action == 3 || action == 7 || action == 10) ? 1 : 0;
-		vec[N_STATE_DIM + 4] = (action == 4 || action == 8) ? 1 : 0;
+	// // JUMP, SPEED, RIGHT, LEFT, DOWN
+	// vec[N_STATE_DIM] = (action == 0 || (action > 4 && action < 11)) ? 1 : 0;
+	// vec[N_STATE_DIM + 1] = (action == 1 || action == 5 || action == 9 || action
+	// == 10) ? 1 : 0;
+	// vec[N_STATE_DIM + 2] = (action == 2 || action == 6 || action == 9) ? 1 : 0;
+	// vec[N_STATE_DIM + 3] = (action == 3 || action == 7 || action == 10) ? 1 : 0;
+	// vec[N_STATE_DIM + 4] = (action == 4 || action == 8) ? 1 : 0;
 
-		return vec;
-	}
+	// return vec;
+	// }
 }

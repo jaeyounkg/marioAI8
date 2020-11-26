@@ -46,7 +46,7 @@ public class MLP implements FA<double[], double[]>, Evolvable {
     public double mutationMagnitude = 0.1;
 
     public static double mean = 0.0; // initialization mean
-    public static double deviation = 1.0; // initialization deviation
+    public static double deviation = 0.1; // initialization deviation
 
     public static final Random random = new Random();
     public double learningRate = 0.05;
@@ -73,22 +73,22 @@ public class MLP implements FA<double[], double[]>, Evolvable {
     }
 
     public void saveToFile(String filename) {
-        try {
-            File f = new File(filename);
-            f.createNewFile();
-            BufferedWriter bw = new BufferedWriter(new FileWriter(f));
-            bw.write(String.valueOf(inputs.length));
-            bw.newLine();
-            bw.write(String.valueOf(hiddenNeurons.length));
-            bw.newLine();
-            bw.write(String.valueOf(outputs.length));
-            bw.newLine();
-            for(int i = 0; i < inputs.length; ++i) {
-                for(int j = 0; j < hiddenNeurons.length; ++j) {
-                    bw.write(String.valueOf(firstConnectionLayer))
-                }
-            }
-        }
+        // try {
+        // File f = new File(filename);
+        // f.createNewFile();
+        // BufferedWriter bw = new BufferedWriter(new FileWriter(f));
+        // bw.write(String.valueOf(inputs.length));
+        // bw.newLine();
+        // bw.write(String.valueOf(hiddenNeurons.length));
+        // bw.newLine();
+        // bw.write(String.valueOf(outputs.length));
+        // bw.newLine();
+        // for(int i = 0; i < inputs.length; ++i) {
+        // for(int j = 0; j < hiddenNeurons.length; ++j) {
+        // bw.write(String.valueOf(firstConnectionLayer))
+        // }
+        // }
+        // }
 
     }
 
@@ -117,6 +117,16 @@ public class MLP implements FA<double[], double[]>, Evolvable {
             System.arraycopy(original[i], 0, copy[i], 0, original[i].length);
         }
         return copy;
+    }
+
+    public int getOutputMaxElem() {
+        int idx = 0;
+        for (int i = 0; i < outputs.length; ++i) {
+            if (outputs[i] > outputs[idx]) {
+                idx = i;
+            }
+        }
+        return idx;
     }
 
     public void mutate() {
@@ -291,19 +301,18 @@ public class MLP implements FA<double[], double[]>, Evolvable {
 
     private void tanh(double[] array) {
         for (int i = 0; i < array.length; i++) {
-            array[i] = Math.tanh(array[i]);
+            // array[i] = Math.tanh(array[i]);
             // for the sigmoid
-            // array[i] = array[i];
-            // array[i] = sig(array[i]);//array[i];//
+            array[i] = sig(array[i]);// array[i];//
         }
     }
 
     private double dtanh(double num) {
         // return 1;
-        return (1 - (num * num));
+        // return (1 - (num * num));
         // for the sigmoid
-        // final double val = sig(num);
-        // return (val*(1-val));
+        final double val = sig(num);
+        return (val * (1 - val));
     }
 
     private double sum() {
