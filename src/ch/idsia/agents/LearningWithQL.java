@@ -23,18 +23,33 @@ public class LearningWithQL implements LearningAgent {
 	private float goal = 4096.0f;
 	private String args;
 	// 試行回数
-	private int numOfTrial = 1000000;
+	private int numOfTrial = 10000000;
+
+	private boolean runExploratively = true;
 
 	private double allTimeBestScore = 1;
+	// explorative
+	private double curEBestScore = 1;
+	private List<Integer> curEBestActions;
+	private double prevEBestScore = 1;
+	// non-explorative
+	private double bestNScore = 1;
+	private QLQFunction bestNQ;
+	private double prevNBestScore = 1;
+	private double curNBestScore = 1;
+	private QLQFunction curNBestQ;
+	private List<Integer> curNBestActions;
+	private Random random = new Random();
+
+	// private
 
 	// コンストラクタ
 	public LearningWithQL(String args) {
 		this.args = args;
 		agent = new QLAgent();
-		QLAgent.bestScore = 0;
 
 		try {
-			QLAgent.loadModelFromFile(FILENAME);
+			agent.loadModelFromFile(FILENAME);
 		} catch (Exception e) {
 			System.out.println(e);
 		}
@@ -43,13 +58,20 @@ public class LearningWithQL implements LearningAgent {
 	// 学習部分
 	// 学習してその中でもっとも良かったものをリプレイ
 	public void learn() {
-		final int SHOW_INTERVALS = 5000;
+		final int SHOW_INTERVALS = 500;
 
 		long startTime = System.currentTimeMillis();
 		for (int nt = 0; nt < numOfTrial; ++nt) {
 			// 目標値までマリオが到達したらshowして終了
-			if (run() >= 4096.0f) {
-				show();
+			if (run() >= 4096.0f && !runExploratively) {
+				show(agent.actions);
+
+				try {
+					QLAgent.saveModelToFile(bestNQ, FILENAME);
+				} catch (IOException e) {
+					System.out.println(e.getMessage());
+				}
+
 				break;
 			}
 			if (nt % SHOW_INTERVALS == SHOW_INTERVALS - 1) {
@@ -57,17 +79,28 @@ public class LearningWithQL implements LearningAgent {
 				long endTime = System.currentTimeMillis();
 
 				System.out.println("time for " + SHOW_INTERVALS + " plays:" + (endTime - startTime) + "(ms)");
-				System.out.println("current best score: " + QLAgent.bestScore);
+				System.out.println("current (e) best score: " + curEBestScore);
+				System.out.println("current (n) best score: " + curNBestScore);
+				System.out.println("all time (n) best score: " + bestNScore);
 				System.out.println("all time best score: " + allTimeBestScore);
-				QLAgent.bestScore = 0;
-
-				show();
 
 				try {
-					QLAgent.saveModelToFile(QLAgent.bestQ, FILENAME);
+					QLAgent.saveModelToFile(bestNQ, FILENAME);
 				} catch (IOException e) {
 					System.out.println(e.getMessage());
 				}
+
+				show(curNBestActions);
+				prevNBestScore = bestNScore;
+
+				// if (prevEBestScore < curEBestScore)
+				// show(curEBestActions);
+				// prevEBestScore = curEBestScore;
+
+				curEBestScore = 0;
+				curNBestScore = 0;
+
+				// agent.Q = bestNQ.clone();
 
 				startTime = System.currentTimeMillis();
 			}
@@ -77,18 +110,14 @@ public class LearningWithQL implements LearningAgent {
 	}
 
 	// リプレイ
-	public void show() {
-		QLAgent.ini();
+	public void show(List<Integer> actions) {
+		agent.ini(false, true);
+		agent.actions = new ArrayList<Integer>(actions);
 		MarioAIOptions marioAIOptions = new MarioAIOptions();
 		BasicTask basicTask = new BasicTask(marioAIOptions);
 
-		/* ステージ生成 */
 		marioAIOptions.setArgs(this.args);
-		QLAgent.setMode(true);
-
-		/* プレイ画面出力するか否か */
 		marioAIOptions.setVisualization(true);
-		/* QLAgentをセット */
 		marioAIOptions.setAgent(agent);
 		marioAIOptions.setFPS(100);
 		basicTask.setOptionsAndReset(marioAIOptions);
@@ -97,9 +126,7 @@ public class LearningWithQL implements LearningAgent {
 			System.out.println("MarioAI: out of computational time" + " per action! Agent disqualified!");
 		}
 
-		/* 評価値(距離)をセット */
 		EvaluationInfo evaluationInfo = basicTask.getEvaluationInfo();
-		// 報酬取得
 		float reward = evaluationInfo.distancePassedPhys;
 		System.out.println("報酬は" + reward);
 	}
@@ -109,25 +136,19 @@ public class LearningWithQL implements LearningAgent {
 	public double run() {
 		long startTime = System.currentTimeMillis();
 
-		QLAgent.ini();
+		runExploratively = !runExploratively;
+		if (runExploratively)
+			agent.epsilon = random.nextFloat() % 0.2f;
+		else
+			agent.epsilon = 0f;
 
-		if (QLAgent.bestScore < 500) {
-			QLAgent.epsilon = 0.05f;
-		} else {
-			QLAgent.epsilon = 0.01f;
-		}
+		agent.ini(runExploratively, false);
+		agent.setExplorativeMaxDist((float) bestNScore);
 
-		/* QLAgentをプレイさせる */
 		MarioAIOptions marioAIOptions = new MarioAIOptions();
 		BasicTask basicTask = new BasicTask(marioAIOptions);
-
-		/* ステージ生成 */
 		marioAIOptions.setArgs(this.args);
-		QLAgent.setMode(false);
-
-		/* プレイ画面出力するか否か */
 		marioAIOptions.setVisualization(false);
-		/* QLAgentをセット */
 		marioAIOptions.setAgent(agent);
 		basicTask.setOptionsAndReset(marioAIOptions);
 
@@ -142,99 +163,96 @@ public class LearningWithQL implements LearningAgent {
 
 		// ベストスコアが出たら更新
 		allTimeBestScore = Math.max(allTimeBestScore, score);
-		if (score > QLAgent.bestScore) {
-			QLAgent.bestScore = score;
-			QLAgent.best = new ArrayList<Integer>(QLAgent.actions);
-			QLAgent.bestQ = QLAgent.Q.clone();
+		if (runExploratively && score > curEBestScore) {
+			curEBestScore = score;
+			curEBestActions = new ArrayList<Integer>(agent.actions);
+		}
+		if (!runExploratively && score > curNBestScore) {
+			curNBestScore = score;
+			curNBestActions = new ArrayList<Integer>(agent.actions);
+			curNBestQ = agent.Q.clone();
+		}
+		if (!runExploratively && score > bestNScore) {
+			bestNScore = score;
+			bestNQ = agent.Q.clone();
 		}
 
-		double reward = Math.pow(score / Math.max(500, allTimeBestScore), 2.5) * 1000;
-		// double reward = (2 * Math.pow(score / allTimeBestScore, 2) - 0.5) * 1000;
+		// double reward = Math.pow(Math.max(score, 0) / Math.max(500,
+		// allTimeBestScore), 2.5) * 1000;
+		double reward = Math.pow(Math.max(score, 0) / 2048, 2) * 2048;
 		agent.giveRewardForEntireHistory(reward);
 		double reward2 = score / evaluationInfo.timeSpent * 10;
 		// agent.giveRewardForEntireHistory(reward2);
 
 		long endTime = System.currentTimeMillis();
-		System.out.println(score + " r:" + (int) reward + "," + (int) reward2 + " s:" + QLAgent.Q.size() + " g:"
-				+ evaluationInfo.timeSpent + "(s) t:" + (endTime - startTime) + "(ms)");
+		System.out.println((runExploratively ? "(e) " : "(n) ") + score + " r:" + (int) reward + "," + (int) reward2
+				+ " s:" + agent.Q.size() + " g:" + evaluationInfo.timeSpent + "(s) t:" + (endTime - startTime)
+				+ "(ms) e:" + agent.epsilon);
 
 		return score;
 	}
 
 	////////////////////////////// ここからは必要なし//////////////////////////////
-	@Override
 	public boolean[] getAction() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	@Override
 	public void integrateObservation(Environment environment) {
 		// TODO Auto-generated method stub
 
 	}
 
-	@Override
 	public void giveIntermediateReward(float intermediateReward) {
 		// TODO Auto-generated method stub
 
 	}
 
-	@Override
 	public void reset() {
 		// TODO Auto-generated method stub
 
 	}
 
-	@Override
 	public void setObservationDetails(int rfWidth, int rfHeight, int egoRow, int egoCol) {
 		// TODO Auto-generated method stub
 
 	}
 
-	@Override
 	public String getName() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	@Override
 	public void setName(String name) {
 		// TODO Auto-generated method stub
 
 	}
 
-	@Override
 	public void giveReward(float reward) {
 		// TODO Auto-generated method stub
 
 	}
 
-	@Override
 	public void newEpisode() {
 		// TODO Auto-generated method stub
 
 	}
 
-	@Override
 	public void setLearningTask(LearningTask learningTask) {
 		// TODO Auto-generated method stub
 
 	}
 
-	@Override
 	public Agent getBestAgent() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	@Override
 	public void init() {
 		// TODO Auto-generated method stub
 
 	}
 
-	@Override
 	public void setEvaluationQuota(long num) {
 		// TODO Auto-generated method stub
 

@@ -9,8 +9,5 @@
 	<classpathentry kind="lib" path="lib/asm-all-3.3.jar"/>
 	<classpathentry kind="lib" path="lib/jdom.jar"/>
 	<classpathentry kind="lib" path="lib/junit-4.8.2.jar"/>
-	<classpathentry kind="lib" path="lib/._asm-all-3.3.jar"/>
-	<classpathentry kind="lib" path="lib/._jdom.jar"/>
-	<classpathentry kind="lib" path="lib/._junit-4.8.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

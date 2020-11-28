@@ -22,48 +22,37 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	 */
 
 	// 毎フレームもっとも価値の高い行動をするが、確率epsilonで他の行動を等確率で選択
-	public static float epsilon = 0.01f;
-	// もっとも良い選択の再現に使用
-	private static int frameCounter = 0;
-	// 毎エピソードで選択した行動を全フレーム分とっておく
-	public static List<Integer> actions;
-	// 学習中にもっとも良かった行動群
-	public static List<Integer> best;
-	public static QLQFunction bestQ;
-	// 学習中にもっとも良かったスコア
-	public static double bestScore;
-	// 毎フレームで貪欲な選択をするかどうか
-	public static boolean mode = false;
-	// 各エピソードで、ある状態である行動を取ったかどうか
-	// QLStateActionPairはint4つでstate,cliff,ableToJump,action
-	// valueのIntegerはこのQLでは使わない
-	public static HashMap<QLStateAction, Integer> selected;
-	public static List<QLStateAction> history;
+	private boolean explorativeMode = false;
+	public float epsilon = 0.10f;
+	private float maxEpsilon = 0.50f;
+	private float explorativeMaxDist = 4096f;
+
+	// when replaying, agent only follows `actions`
+	private boolean replayingMode = false;
+	private int frameCounter = 0;
+	public List<Integer> actions;
+
+	public static final int UPPER_TICKS_FOR_STAYING_STILL = 600;
+	public List<QLStateAction> history;
 	// 行動価値関数 これを基に行動を決める
-	public static QLQFunction Q;
-	public final static double INITIAL_Q = 0;
+	public QLQFunction Q;
+	public final double INITIAL_Q = 0;
 	// learning rate
-	public static double alpha = 0.05;
+	private double alpha = 0.1;
 	// discount factor
-	public static double gamma = 0.5;
-	// 各状態行動対におけるそれまで得た報酬の合計
-	// public static float[][] sumValue;
-	// ある状態である行動を取った回数. initialized to 1
-	// public static int[][] num;
+	private double gamma = 0.5;
 
-	private static float prevX, prevY;
-	private static int prevCollisionsWithCreatures;
-	private static int prevKillsTotal;
+	private float prevX, prevY;
+	private int prevCollisionsWithCreatures;
+	private int prevKillsTotal;
 
-	public static void setMode(boolean b) {
-		mode = b;
-	}
-
-	public static void ini() {
+	public void ini(boolean explorativeMode, boolean replayingMode) {
 		frameCounter = 0;
-		selected.clear();
 		history.clear();
-		actions.clear();
+		this.explorativeMode = explorativeMode;
+		this.replayingMode = replayingMode;
+		if (!replayingMode)
+			actions.clear();
 
 		// floatMarioPos might not have been initialized yet
 		prevX = 0;
@@ -72,74 +61,136 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 		prevKillsTotal = 0;
 	}
 
+	public void setExplorativeMaxDist(float maxDist) {
+		explorativeMaxDist = maxDist;
+	}
+
 	// コンストラクタ
 	public QLAgent() {
 		super(name);
 		Q = new QLQFunction();
-		selected = new HashMap<QLStateAction, Integer>();
 		history = new ArrayList<QLStateAction>();
-		Random random = new Random();
-
 		actions = new ArrayList<Integer>();
-		best = new ArrayList<Integer>();
 	}
 
 	public boolean[] getAction() {
-		float x = marioFloatPos[0];
-		float y = marioFloatPos[1];
+		float marioX = marioFloatPos[0];
+		float marioY = marioFloatPos[1];
 
-		// give penalty for collisions
-		if (Mario.collisionsWithCreatures > prevCollisionsWithCreatures) {
-			giveRewardForRecentActions(6, -250);
-		}
+		if (explorativeMode) {
+			// give penalty for collisions
+			if (Mario.collisionsWithCreatures > prevCollisionsWithCreatures) {
+				giveRewardForRecentActions(8, 0);
+			}
 
-		// give reward for kills
-		if (getKillsTotal > prevKillsTotal) {
-			giveRewardForRecentActions(6, 10);
-		}
+			// give reward for kills
+			if (getKillsTotal > prevKillsTotal) {
+				// giveRewardForRecentActions(16, 200);
+			}
 
-		if (x == prevX) {
-			giveRewardForRecentActions(1, -1);
+			if (marioX == prevX) {
+				// giveRewardForRecentActions(1, -1);
+			}
+
+			if (history.size() > 1) {
+				final QLStateAction lastSA = history.get(history.size() - 1);
+				lastSA.state.assertInformationIsAvailable();
+
+				// give reward for jumping to higher location
+				if (isMarioOnGround && !lastSA.state.onGround) {
+					ListIterator<QLStateAction> iter = history.listIterator(history.size());
+					for (int duration = 1; iter.hasPrevious(); ++duration) {
+						final QLStateAction sa = iter.previous();
+						sa.state.assertInformationIsAvailable();
+						if (sa.state.onGround) {
+							if (sa.state.marioY > marioY) {
+								giveRewardForRecentActions(duration, (sa.state.marioY - marioY) / 16 * 1000);
+							}
+							break;
+						}
+					}
+				}
+
+				// give penalty for staying still for too long
+				if (history.size() % UPPER_TICKS_FOR_STAYING_STILL == 0) {
+					ListIterator<QLStateAction> iter = history.listIterator(history.size());
+					for (int duration = 1; iter.hasPrevious(); ++duration) {
+						QLStateAction sa = iter.previous();
+						sa.state.assertInformationIsAvailable();
+						if (sa.state.marioX < marioX - 16f || marioX + 16f < sa.state.marioX)
+							break;
+						if (duration >= UPPER_TICKS_FOR_STAYING_STILL) {
+							giveRewardForRecentActions(duration, 0);
+							break;
+						}
+					}
+				}
+			}
 		}
 
 		clearAction();
 		int currAction = 0;
-		if (!mode) {
+		if (!replayingMode) {
 			currAction = chooseAction();
-			actions.add(currAction);
 			intToAction(currAction);
-			final QLState state = getState();
-			if (!selected.containsKey(new QLStateAction(state, currAction)))
-				selected.put(new QLStateAction(state, currAction), 1);
-			else
-				selected.put(new QLStateAction(state, currAction),
-						selected.get(new QLStateAction(state, currAction)) + 1);
-			history.add(new QLStateAction(state, currAction));
+			actions.add(currAction);
+			history.add(new QLStateAction(getState(), currAction));
 		} else {
-			// currAction = chooseActionG();
-			if (frameCounter < best.size())
-				currAction = best.get(frameCounter);
+			if (frameCounter < actions.size())
+				currAction = actions.get(frameCounter);
 			intToAction(currAction);
 		}
 		frameCounter++;
 
-		prevX = marioFloatPos[0];
-		prevY = marioFloatPos[1];
+		prevX = marioX;
+		prevY = marioY;
 		prevCollisionsWithCreatures = Mario.collisionsWithCreatures;
 		prevKillsTotal = getKillsTotal;
 
 		return action;
 	}
 
+	// 行動価値関数を基に行動選択
+	public int chooseAction() {
+		float r = (float) (Math.random());
+		// float epsilon = maxEpsilon * (float) Math.pow(marioFloatPos[0] /
+		// explorativeMaxDist, 3);
+		int idx = 0;
+		if (explorativeMode && r < epsilon) {
+			float sum = 0;
+			float d = epsilon / (float) N_ACTIONS;
+			sum += d;
+			while (sum < r) {
+				sum += d;
+				idx++;
+			}
+		} else {
+			double max = -Double.MAX_VALUE;
+			QLState s = getState();
+			for (int i = 0; i < N_ACTIONS; ++i) {
+				double q = Q.getOrDefault(new QLStateAction(s, i), INITIAL_Q);
+				if (q > max) {
+					max = q;
+					idx = i;
+				}
+			}
+		}
+		return idx;
+	}
+
 	// update Q(`prevState`, `prevAction`) based on current state `curState`
-	public static void updateQ(QLStateAction prevStateAction, QLState curState, double reward) {
+	public void updateQ(QLStateAction prevStateAction, QLState curState, double reward) {
+		if (Double.isNaN(reward))
+			return;
+
 		double maxQ = 0;
 		for (int a = 0; a < QLAgent.N_ACTIONS; ++a) {
 			maxQ = Math.max(maxQ, Q.getOrDefault(new QLStateAction(curState, a), INITIAL_Q));
 		}
 
 		if (Q.containsKey(prevStateAction)) {
-			Q.put(prevStateAction, (1 - alpha) * Q.get(prevStateAction) + alpha * (reward + gamma * maxQ));
+			double newQ = (1 - alpha) * Q.get(prevStateAction) + alpha * (reward + gamma * maxQ);
+			Q.put(prevStateAction, newQ);
 		} else {
 			Q.put(prevStateAction, reward + gamma * maxQ);
 		}
@@ -182,7 +233,8 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 		bw.close();
 	}
 
-	public static void loadModelFromFile(String filename) throws NumberFormatException, IOException {
+	public void loadModelFromFile(String filename) throws NumberFormatException, IOException {
+		Q = new QLQFunction();
 		File f = new File(filename);
 		BufferedReader br = new BufferedReader(new FileReader(f));
 		String s = br.readLine();
@@ -192,7 +244,9 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 			long key = Long.parseLong(s);
 			s = br.readLine();
 			Double value = Double.parseDouble(s);
-			QLAgent.Q.put(new QLStateAction(key), value);
+			if (value.isNaN())
+				value = INITIAL_Q;
+			Q.put(new QLStateAction(key), value);
 		}
 		br.close();
 	}
@@ -202,43 +256,7 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	// ついでにマリオが地面にいるかも取得
 	// 崖検出
 	public QLState getState() {
-		boolean cliff = true;
-		for (int i = 0; i < 10; ++i) {
-			if (getReceptiveFieldCellValue(marioEgoRow + i, marioEgoCol + 1) != 0) {
-				cliff = false;
-				break;
-			}
-		}
-
-		QLState state = new QLState(levelScene, enemies, marioFloatPos, isMarioOnGround, cliff, isMarioAbleToJump);
-		return state;
-	}
-
-	// 行動価値関数を基に行動選択
-	public int chooseAction() {
-		float r = (float) (Math.random());
-		int idx = 0;
-		if (r < epsilon) {
-			float sum = 0;
-			float d = epsilon / (float) N_ACTIONS;
-			sum += d;
-			while (sum < r) {
-				sum += d;
-				idx++;
-			}
-		} else {
-			double max = -Double.MAX_VALUE;
-			Random random = new Random();
-			QLState s = getState();
-			for (int i = 0; i < N_ACTIONS; ++i) {
-				double q = Q.getOrDefault(new QLStateAction(s, i), random.nextDouble() * 1000);
-				if (q > max) {
-					max = q;
-					idx = i;
-				}
-			}
-		}
-		return idx;
+		return new QLState(levelScene, enemies, marioFloatPos, isMarioOnGround, isMarioAbleToJump);
 	}
 
 	// 行動選択前にactionを一旦全部falseにする

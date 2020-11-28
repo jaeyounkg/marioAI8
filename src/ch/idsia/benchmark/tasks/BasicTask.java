@@ -47,7 +47,7 @@ public class BasicTask implements Task {
     private Agent agent;
     protected MarioAIOptions options;
     // private long COMPUTATION_TIME_BOUND = 42; // stands for prescribed FPS 24.
-    private long COMPUTATION_TIME_BOUND = 120;
+    private long COMPUTATION_TIME_BOUND = 500;
     private String name = getClass().getSimpleName();
     private EvaluationInfo evaluationInfo;
 

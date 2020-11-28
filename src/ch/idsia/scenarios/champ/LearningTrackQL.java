@@ -138,11 +138,16 @@ public final class LearningTrackQL {
 
     public static void main(String[] args) {
 
-        final int runWhat = 1;
+        final int runWhat = 3;
 
         /* 学習に用いるAgentを指定 */
         LearningAgent learningAgent;
         switch (runWhat) {
+            /* MainTask3.java */
+            case 0:
+                learningAgent = new LearningWithQL("-lhs off -ltb on -lg off -lb off -ld 1 -ls 0 -le g");
+                break;
+
             /* MainTask4_1.java */
             case 1:
                 learningAgent = new LearningWithQL("-lde on -i on -ltb off -ld 2 -ls 0 -le g");

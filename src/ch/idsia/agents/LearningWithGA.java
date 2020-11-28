@@ -136,7 +136,7 @@ public class LearningWithGA implements LearningAgent {
 		if (presentBestAgentDistance > fmax) {
 			bestAgent = (Agent) agents[0].clone(); // bestAgentを更新
 			fmax = presentBestAgentDistance; // fmax更新
-			writeFile(); // bestAgentのxmlを出力
+			// writeFile(); // bestAgentのxmlを出力
 			System.out.println("fmax : " + fmax);
 		}
 		return;
@@ -167,7 +167,6 @@ public class LearningWithGA implements LearningAgent {
 		}
 
 		/* ルーレットで選ぶ */
-
 		for (int i = 0; i < 2; i++) { // 2回繰り返す
 
 			/* 2から99までの乱数を作成し，99で割る */
@@ -190,12 +189,11 @@ public class LearningWithGA implements LearningAgent {
 					parentsGene[i] = 2;
 					break;
 				}
-
 			}
 		}
+
 		/* 返り値として，交叉する親の番号が入っている．要素数は2． */
 		return parentsGene;
-
 	}
 
 	/* 交叉 */
