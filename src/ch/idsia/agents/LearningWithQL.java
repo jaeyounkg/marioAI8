@@ -23,25 +23,25 @@ public class LearningWithQL implements LearningAgent {
 	private float goal = 4096.0f;
 	private String args;
 	// 試行回数
-	private int numOfTrial = 10000000;
+	private int numOfTrial = 100000000;
 
 	private boolean runExploratively = true;
 
-	private double allTimeBestScore = 1;
+	private double bestScore = 1;
+	private List<QLStateAction> bestHistory;
 	// explorative
 	private double curEBestScore = 1;
 	private List<Integer> curEBestActions;
-	private double prevEBestScore = 1;
 	// non-explorative
 	private double bestNScore = 1;
 	private QLQFunction bestNQ;
+	private List<QLStateAction> bestNHistory;
+
 	private double prevNBestScore = 1;
 	private double curNBestScore = 1;
 	private QLQFunction curNBestQ;
 	private List<Integer> curNBestActions;
 	private Random random = new Random();
-
-	// private
 
 	// コンストラクタ
 	public LearningWithQL(String args) {
@@ -53,6 +53,10 @@ public class LearningWithQL implements LearningAgent {
 		} catch (Exception e) {
 			System.out.println(e);
 		}
+	}
+
+	private static double calculateReward(double score) {
+		return Math.pow(Math.max(score, 0) / 2048, 2) * 2048;
 	}
 
 	// 学習部分
@@ -82,7 +86,7 @@ public class LearningWithQL implements LearningAgent {
 				System.out.println("current (e) best score: " + curEBestScore);
 				System.out.println("current (n) best score: " + curNBestScore);
 				System.out.println("all time (n) best score: " + bestNScore);
-				System.out.println("all time best score: " + allTimeBestScore);
+				System.out.println("all time best score: " + bestScore);
 
 				try {
 					QLAgent.saveModelToFile(bestNQ, FILENAME);
@@ -90,17 +94,16 @@ public class LearningWithQL implements LearningAgent {
 					System.out.println(e.getMessage());
 				}
 
+				// if (curNBestScore > prevNBestScore)
 				show(curNBestActions);
 				prevNBestScore = bestNScore;
-
-				// if (prevEBestScore < curEBestScore)
-				// show(curEBestActions);
-				// prevEBestScore = curEBestScore;
 
 				curEBestScore = 0;
 				curNBestScore = 0;
 
-				// agent.Q = bestNQ.clone();
+				// agent.history = bestNHistory;
+				// for (int i = 0; i < SHOW_INTERVALS / 5; ++i)
+				// agent.giveRewardForEntireHistory(calculateReward(bestNScore));
 
 				startTime = System.currentTimeMillis();
 			}
@@ -162,7 +165,13 @@ public class LearningWithQL implements LearningAgent {
 		double score = evaluationInfo.distancePassedPhys;
 
 		// ベストスコアが出たら更新
-		allTimeBestScore = Math.max(allTimeBestScore, score);
+		if (score > bestScore) {
+			bestScore = score;
+			bestHistory = new ArrayList<QLStateAction>();
+			for (QLStateAction sa : agent.history) {
+				bestHistory.add(sa.clone());
+			}
+		}
 		if (runExploratively && score > curEBestScore) {
 			curEBestScore = score;
 			curEBestActions = new ArrayList<Integer>(agent.actions);
@@ -175,12 +184,28 @@ public class LearningWithQL implements LearningAgent {
 		if (!runExploratively && score > bestNScore) {
 			bestNScore = score;
 			bestNQ = agent.Q.clone();
+			bestNHistory = new ArrayList<QLStateAction>();
+			for (QLStateAction sa : agent.history) {
+				bestNHistory.add(sa.clone());
+			}
 		}
 
 		// double reward = Math.pow(Math.max(score, 0) / Math.max(500,
-		// allTimeBestScore), 2.5) * 1000;
-		double reward = Math.pow(Math.max(score, 0) / 2048, 2) * 2048;
-		agent.giveRewardForEntireHistory(reward);
+		// bestScore), 2.5) * 1000;
+		double reward = calculateReward(score);
+		if (evaluationInfo.timeSpent >= 199) {
+			ListIterator<QLStateAction> iter = agent.history.listIterator(0);
+			int t = 0;
+			for (; iter.hasNext(); ++t) {
+				QLStateAction sa = iter.next();
+				if (sa.state.marioX >= score - 0.1f)
+					break;
+			}
+			agent.giveRewardForPastActions(0, t, reward);
+			agent.giveRewardForPastActions(t + 1, agent.history.size(), 0);
+		} else {
+			agent.giveRewardForEntireHistory(reward);
+		}
 		double reward2 = score / evaluationInfo.timeSpent * 10;
 		// agent.giveRewardForEntireHistory(reward2);
 
@@ -188,6 +213,13 @@ public class LearningWithQL implements LearningAgent {
 		System.out.println((runExploratively ? "(e) " : "(n) ") + score + " r:" + (int) reward + "," + (int) reward2
 				+ " s:" + agent.Q.size() + " g:" + evaluationInfo.timeSpent + "(s) t:" + (endTime - startTime)
 				+ "(ms) e:" + agent.epsilon);
+
+		agent.history = new ArrayList<QLStateAction>();
+		for (QLStateAction sa : bestHistory) {
+			agent.history.add(sa.clone());
+		}
+		agent.giveRewardForPastActions(0, 15 * 0, calculateReward(bestScore));
+		// agent.giveRewardForEntireHistory(calculateReward(bestScore));
 
 		return score;
 	}

@@ -65,6 +65,10 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 		explorativeMaxDist = maxDist;
 	}
 
+	public boolean isExplorative() {
+		return explorativeMode && frameCounter > 15 * 0;
+	}
+
 	// コンストラクタ
 	public QLAgent() {
 		super(name);
@@ -77,10 +81,10 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 		float marioX = marioFloatPos[0];
 		float marioY = marioFloatPos[1];
 
-		if (explorativeMode) {
+		if (isExplorative()) {
 			// give penalty for collisions
 			if (Mario.collisionsWithCreatures > prevCollisionsWithCreatures) {
-				giveRewardForRecentActions(8, 0);
+				giveRewardForRecentActions(12, 0);
 			}
 
 			// give reward for kills
@@ -97,19 +101,20 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 				lastSA.state.assertInformationIsAvailable();
 
 				// give reward for jumping to higher location
-				if (isMarioOnGround && !lastSA.state.onGround) {
-					ListIterator<QLStateAction> iter = history.listIterator(history.size());
-					for (int duration = 1; iter.hasPrevious(); ++duration) {
-						final QLStateAction sa = iter.previous();
-						sa.state.assertInformationIsAvailable();
-						if (sa.state.onGround) {
-							if (sa.state.marioY > marioY) {
-								giveRewardForRecentActions(duration, (sa.state.marioY - marioY) / 16 * 1000);
-							}
-							break;
-						}
-					}
-				}
+				// if (isMarioOnGround && !lastSA.state.onGround) {
+				// ListIterator<QLStateAction> iter = history.listIterator(history.size());
+				// for (int duration = 1; iter.hasPrevious(); ++duration) {
+				// final QLStateAction sa = iter.previous();
+				// sa.state.assertInformationIsAvailable();
+				// if (sa.state.onGround) {
+				// if (sa.state.marioY > marioY) {
+				// giveRewardForRecentActions(duration - 4, (sa.state.marioY - marioY) / 16 *
+				// 5000);
+				// }
+				// break;
+				// }
+				// }
+				// }
 
 				// give penalty for staying still for too long
 				if (history.size() % UPPER_TICKS_FOR_STAYING_STILL == 0) {
@@ -156,7 +161,7 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 		// float epsilon = maxEpsilon * (float) Math.pow(marioFloatPos[0] /
 		// explorativeMaxDist, 3);
 		int idx = 0;
-		if (explorativeMode && r < epsilon) {
+		if (isExplorative() && r < epsilon) {
 			float sum = 0;
 			float d = epsilon / (float) N_ACTIONS;
 			sum += d;
@@ -196,6 +201,19 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 		}
 	}
 
+	// give rewards for actions taken from `startTick` till `endTick`
+	public void giveRewardForPastActions(int startTick, int endTick, double reward) {
+		ListIterator<QLStateAction> iter = history.listIterator(endTick);
+		if (!iter.hasPrevious())
+			return;
+		QLStateAction curPair = iter.previous();
+		for (int i = endTick; iter.hasPrevious() && i > startTick; --i) {
+			QLStateAction prevPair = iter.previous();
+			updateQ(prevPair, curPair.state, reward);
+			curPair = prevPair;
+		}
+	}
+
 	// give rewards for actions taken in the recent `duration` amount of time
 	public void giveRewardForRecentActions(int duration, double reward) {
 		ListIterator<QLStateAction> iter = history.listIterator(history.size());
@@ -203,11 +221,7 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 			return;
 		QLStateAction curPair = iter.previous();
 		updateQ(curPair, getState(), reward);
-		for (int i = 1; iter.hasPrevious() && i < duration; ++i) {
-			QLStateAction prevPair = iter.previous();
-			updateQ(prevPair, curPair.state, reward);
-			curPair = prevPair;
-		}
+		giveRewardForPastActions(history.size() - duration, history.size(), reward);
 	}
 
 	// give rewards for the entire state-action pairs
