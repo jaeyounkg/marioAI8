@@ -3,24 +3,17 @@ package ch.idsia.agents;
 import java.io.*;
 import java.util.*;
 
-import ch.idsia.benchmark.mario.engine.GlobalOptions;
-import ch.idsia.benchmark.mario.engine.sprites.Mario;
 import ch.idsia.benchmark.mario.environments.Environment;
 import ch.idsia.benchmark.tasks.BasicTask;
 import ch.idsia.benchmark.tasks.LearningTask;
 import ch.idsia.tools.EvaluationInfo;
 import ch.idsia.tools.MarioAIOptions;
-import ch.idsia.utils.wox.serial.Easy;
-import ch.idsia.agents.QLAgent;
-import ch.idsia.agents.QLStateAction;
 
 public class LearningWithQL implements LearningAgent {
 	private final String FILENAME = "LearnedQLModel.txt";
 
 	private QLAgent agent;
 	private String name = "LearningWithQL";
-	// 目標値(4096.0はステージの右端)
-	private float goal = 4096.0f;
 	private String args;
 	// 試行回数
 	private int numOfTrial = 100000000;
@@ -31,7 +24,6 @@ public class LearningWithQL implements LearningAgent {
 	private List<QLStateAction> bestHistory;
 	// explorative
 	private double curEBestScore = 1;
-	private List<Integer> curEBestActions;
 	// non-explorative
 	private double bestNScore = 1;
 	private QLQFunction bestNQ;
@@ -39,9 +31,10 @@ public class LearningWithQL implements LearningAgent {
 
 	private double prevNBestScore = 1;
 	private double curNBestScore = 1;
-	private QLQFunction curNBestQ;
 	private List<Integer> curNBestActions;
 	private Random random = new Random();
+
+	public static final int FIXED_TICKS = 15 * 0;
 
 	// コンストラクタ
 	public LearningWithQL(String args) {
@@ -62,7 +55,7 @@ public class LearningWithQL implements LearningAgent {
 	// 学習部分
 	// 学習してその中でもっとも良かったものをリプレイ
 	public void learn() {
-		final int SHOW_INTERVALS = 500;
+		final int SHOW_INTERVALS = 100;
 
 		long startTime = System.currentTimeMillis();
 		for (int nt = 0; nt < numOfTrial; ++nt) {
@@ -94,16 +87,12 @@ public class LearningWithQL implements LearningAgent {
 					System.out.println(e.getMessage());
 				}
 
-				// if (curNBestScore > prevNBestScore)
-				show(curNBestActions);
+				if (curNBestScore > prevNBestScore)
+					show(curNBestActions);
 				prevNBestScore = bestNScore;
 
 				curEBestScore = 0;
 				curNBestScore = 0;
-
-				// agent.history = bestNHistory;
-				// for (int i = 0; i < SHOW_INTERVALS / 5; ++i)
-				// agent.giveRewardForEntireHistory(calculateReward(bestNScore));
 
 				startTime = System.currentTimeMillis();
 			}
@@ -146,7 +135,6 @@ public class LearningWithQL implements LearningAgent {
 			agent.epsilon = 0f;
 
 		agent.ini(runExploratively, false);
-		agent.setExplorativeMaxDist((float) bestNScore);
 
 		MarioAIOptions marioAIOptions = new MarioAIOptions();
 		BasicTask basicTask = new BasicTask(marioAIOptions);
@@ -161,7 +149,6 @@ public class LearningWithQL implements LearningAgent {
 
 		/* 評価値(距離)をセット */
 		EvaluationInfo evaluationInfo = basicTask.getEvaluationInfo();
-		// 報酬取得
 		double score = evaluationInfo.distancePassedPhys;
 
 		// ベストスコアが出たら更新
@@ -174,12 +161,10 @@ public class LearningWithQL implements LearningAgent {
 		}
 		if (runExploratively && score > curEBestScore) {
 			curEBestScore = score;
-			curEBestActions = new ArrayList<Integer>(agent.actions);
 		}
 		if (!runExploratively && score > curNBestScore) {
 			curNBestScore = score;
 			curNBestActions = new ArrayList<Integer>(agent.actions);
-			curNBestQ = agent.Q.clone();
 		}
 		if (!runExploratively && score > bestNScore) {
 			bestNScore = score;
@@ -190,8 +175,6 @@ public class LearningWithQL implements LearningAgent {
 			}
 		}
 
-		// double reward = Math.pow(Math.max(score, 0) / Math.max(500,
-		// bestScore), 2.5) * 1000;
 		double reward = calculateReward(score);
 		if (evaluationInfo.timeSpent >= 199) {
 			ListIterator<QLStateAction> iter = agent.history.listIterator(0);
@@ -206,20 +189,16 @@ public class LearningWithQL implements LearningAgent {
 		} else {
 			agent.giveRewardForEntireHistory(reward);
 		}
-		double reward2 = score / evaluationInfo.timeSpent * 10;
-		// agent.giveRewardForEntireHistory(reward2);
 
 		long endTime = System.currentTimeMillis();
-		System.out.println((runExploratively ? "(e) " : "(n) ") + score + " r:" + (int) reward + "," + (int) reward2
-				+ " s:" + agent.Q.size() + " g:" + evaluationInfo.timeSpent + "(s) t:" + (endTime - startTime)
-				+ "(ms) e:" + agent.epsilon);
+		System.out.println((runExploratively ? "(e) " : "(n) ") + score + " r:" + (int) reward + " s:" + agent.Q.size()
+				+ " g:" + evaluationInfo.timeSpent + "(s) t:" + (endTime - startTime) + "(ms) e:" + agent.epsilon);
 
 		agent.history = new ArrayList<QLStateAction>();
 		for (QLStateAction sa : bestHistory) {
 			agent.history.add(sa.clone());
 		}
-		agent.giveRewardForPastActions(0, 15 * 0, calculateReward(bestScore));
-		// agent.giveRewardForEntireHistory(calculateReward(bestScore));
+		agent.giveRewardForPastActions(0, FIXED_TICKS, calculateReward(bestScore));
 
 		return score;
 	}

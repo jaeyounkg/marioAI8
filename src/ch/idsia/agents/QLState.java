@@ -1,7 +1,5 @@
 package ch.idsia.agents;
 
-import java.lang.*;
-
 import ch.idsia.benchmark.mario.engine.GeneralizerLevelScene;
 import ch.idsia.benchmark.mario.engine.sprites.Sprite;
 

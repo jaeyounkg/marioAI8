@@ -2,15 +2,11 @@ package ch.idsia.agents;
 
 import java.util.*;
 import java.util.Map.Entry;
-import java.math.*;
-import java.lang.Math.*;
 import java.io.*;
 
 import ch.idsia.agents.controllers.BasicMarioAIAgent;
 import ch.idsia.benchmark.mario.engine.sprites.Mario;
-import ch.idsia.benchmark.mario.engine.sprites.Sprite;
 import ch.idsia.benchmark.mario.environments.*;
-import ch.idsia.agents.QLStateAction;
 
 public class QLAgent extends BasicMarioAIAgent implements Agent {
 	static String name = "QLAgent";
@@ -24,8 +20,6 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	// 毎フレームもっとも価値の高い行動をするが、確率epsilonで他の行動を等確率で選択
 	private boolean explorativeMode = false;
 	public float epsilon = 0.10f;
-	private float maxEpsilon = 0.50f;
-	private float explorativeMaxDist = 4096f;
 
 	// when replaying, agent only follows `actions`
 	private boolean replayingMode = false;
@@ -61,12 +55,8 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 		prevKillsTotal = 0;
 	}
 
-	public void setExplorativeMaxDist(float maxDist) {
-		explorativeMaxDist = maxDist;
-	}
-
 	public boolean isExplorative() {
-		return explorativeMode && frameCounter > 15 * 0;
+		return explorativeMode && frameCounter > LearningWithQL.FIXED_TICKS;
 	}
 
 	// コンストラクタ
@@ -87,34 +77,24 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 				giveRewardForRecentActions(12, 0);
 			}
 
-			// give reward for kills
-			if (getKillsTotal > prevKillsTotal) {
-				// giveRewardForRecentActions(16, 200);
-			}
-
-			if (marioX == prevX) {
-				// giveRewardForRecentActions(1, -1);
-			}
-
 			if (history.size() > 1) {
 				final QLStateAction lastSA = history.get(history.size() - 1);
 				lastSA.state.assertInformationIsAvailable();
 
 				// give reward for jumping to higher location
-				// if (isMarioOnGround && !lastSA.state.onGround) {
-				// ListIterator<QLStateAction> iter = history.listIterator(history.size());
-				// for (int duration = 1; iter.hasPrevious(); ++duration) {
-				// final QLStateAction sa = iter.previous();
-				// sa.state.assertInformationIsAvailable();
-				// if (sa.state.onGround) {
-				// if (sa.state.marioY > marioY) {
-				// giveRewardForRecentActions(duration - 4, (sa.state.marioY - marioY) / 16 *
-				// 5000);
-				// }
-				// break;
-				// }
-				// }
-				// }
+				if (isMarioOnGround && !lastSA.state.onGround) {
+					ListIterator<QLStateAction> iter = history.listIterator(history.size());
+					for (int duration = 1; iter.hasPrevious(); ++duration) {
+						final QLStateAction sa = iter.previous();
+						sa.state.assertInformationIsAvailable();
+						if (sa.state.onGround) {
+							if (sa.state.marioY > marioY) {
+								giveRewardForRecentActions(duration - 4, (sa.state.marioY - marioY) / 16 * 5000);
+							}
+							break;
+						}
+					}
+				}
 
 				// give penalty for staying still for too long
 				if (history.size() % UPPER_TICKS_FOR_STAYING_STILL == 0) {
@@ -158,8 +138,6 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 	// 行動価値関数を基に行動選択
 	public int chooseAction() {
 		float r = (float) (Math.random());
-		// float epsilon = maxEpsilon * (float) Math.pow(marioFloatPos[0] /
-		// explorativeMaxDist, 3);
 		int idx = 0;
 		if (isExplorative() && r < epsilon) {
 			float sum = 0;
@@ -265,15 +243,10 @@ public class QLAgent extends BasicMarioAIAgent implements Agent {
 		br.close();
 	}
 
-	// 障害物を検出し、stateの各bitに0,1で格納
-	// ここでマリオが得る情報をほとんど決めている
-	// ついでにマリオが地面にいるかも取得
-	// 崖検出
 	public QLState getState() {
 		return new QLState(levelScene, enemies, marioFloatPos, isMarioOnGround, isMarioAbleToJump);
 	}
 
-	// 行動選択前にactionを一旦全部falseにする
 	public void clearAction() {
 		for (int i = 0; i < Environment.numberOfKeys; ++i) {
 			action[i] = false;

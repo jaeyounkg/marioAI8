@@ -1,7 +1,5 @@
 package ch.idsia.agents;
 
-import java.util.*;
-
 public final class QLStateAction {
 
 	public final QLState state;

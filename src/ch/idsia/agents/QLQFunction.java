@@ -2,8 +2,6 @@ package ch.idsia.agents;
 
 import java.util.*;
 
-import ch.idsia.agents.QLStateAction;
-
 public class QLQFunction extends HashMap<QLStateAction, Double> {
 
     public QLQFunction clone() {
