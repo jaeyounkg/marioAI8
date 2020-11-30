@@ -29,28 +29,36 @@ package ch.idsia.scenarios;
 
 import ch.idsia.benchmark.tasks.BasicTask;
 import ch.idsia.tools.MarioAIOptions;
-import ch.idsia.agents.Agent;
-import ch.idsia.agents.controllers.IgnoreObstacleAgent;
+
+import java.io.IOException;
+
+import ch.idsia.agents.QLAgent;
 
 /**
- * Created by IntelliJ IDEA. User: Sergey Karakovskiy, sergey at idsia dot ch Date: Mar 17, 2010 Time: 8:28:00 AM
- * Package: ch.idsia.scenarios
+ * Created by IntelliJ IDEA. User: Sergey Karakovskiy, sergey at idsia dot ch
+ * Date: Mar 17, 2010 Time: 8:28:00 AM Package: ch.idsia.scenarios
  */
-public final class MainTask4_2
-{
-public static void main(String[] args)
-{
-    final MarioAIOptions marioAIOptions = new MarioAIOptions(args);
+public final class MainTask4_2 {
+    public static void main(String[] args) {
+        final MarioAIOptions marioAIOptions = new MarioAIOptions(args);
 
-    final Agent agent = new IgnoreObstacleAgent();
-    marioAIOptions.setAgent(agent);
+        final QLAgent agent = new QLAgent();
+        try {
+            agent.loadModelFromFile("LearnedQLModelCleared4-2.txt");
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
+        }
+        agent.ini(false, false);
 
-    marioAIOptions.setArgs("-lco off -lb on -le off -lhb off -lg on -ltb on -lhs off -lca on -lde on -ld 5 -ls 133829");
-    
-    final BasicTask basicTask = new BasicTask(marioAIOptions);
-    basicTask.setOptionsAndReset(marioAIOptions);
-    basicTask.doEpisodes(1,true,1);
-    System.exit(0);
-}
+        marioAIOptions.setAgent(agent);
+        marioAIOptions
+                .setArgs("-lco off -lb on -le off -lhb off -lg on -ltb on -lhs off -lca on -lde on -ld 5 -ls 133829");
+
+        final BasicTask basicTask = new BasicTask(marioAIOptions);
+        basicTask.setOptionsAndReset(marioAIOptions);
+        basicTask.doEpisodes(1, true, 1);
+        System.exit(0);
+    }
 
 }

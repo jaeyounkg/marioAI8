@@ -55,7 +55,7 @@ public class LearningWithQL implements LearningAgent {
 	// 学習部分
 	// 学習してその中でもっとも良かったものをリプレイ
 	public void learn() {
-		final int SHOW_INTERVALS = 100;
+		final int SHOW_INTERVALS = 10000;
 
 		long startTime = System.currentTimeMillis();
 		for (int nt = 0; nt < numOfTrial; ++nt) {
@@ -198,6 +198,8 @@ public class LearningWithQL implements LearningAgent {
 		for (QLStateAction sa : bestHistory) {
 			agent.history.add(sa.clone());
 		}
+		// agent.giveRewardForPastActions(0, bestScore >= 4095 ? agent.history.size() :
+		// FIXED_TICKS, calculateReward(bestScore));
 		agent.giveRewardForPastActions(0, FIXED_TICKS, calculateReward(bestScore));
 
 		return score;

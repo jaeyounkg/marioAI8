@@ -38,7 +38,7 @@ public final class LearningTrackQL {
 
     public static void main(String[] args) {
 
-        final int runWhat = 3;
+        final int runWhat = 1;
 
         /* 学習に用いるAgentを指定 */
         LearningAgent learningAgent;
@@ -50,7 +50,7 @@ public final class LearningTrackQL {
 
             /* MainTask4_1.java */
             case 1:
-                learningAgent = new LearningWithQL("-lde on -i on -ltb off -ld 2 -ls 0 -le g");
+                learningAgent = new LearningWithQL("-lde on -ltb off -ld 2 -ls 0 -le g");
                 break;
 
             /* MainTask4_2.java */
